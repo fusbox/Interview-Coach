@@ -6,7 +6,7 @@ import type { CandidateNextRoundBuilderModel } from "@/features/candidate-practi
 
 import {
     CandidateNextRoundBuilderExperience,
-    CandidateNextRoundBuilderTrigger,
+    CandidateNextRoundReviewFooter,
 } from "./CandidateNextRoundBuilderExperience";
 import { CandidateQuestionPracticeActions } from "./CandidatePracticeNextActions";
 
@@ -31,12 +31,12 @@ describe("CandidateQuestionPracticeActions", () => {
                         rootQuestionKey: "slot-1",
                     }}
                 />
-                <CandidateNextRoundBuilderTrigger />
+                <CandidateNextRoundReviewFooter />
             </CandidateNextRoundBuilderExperience>,
         );
 
         expect(screen.getByRole("button", { name: "Practice this now" })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Next practice round" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Review next round" })).not.toBeInTheDocument();
 
         await user.click(screen.getByRole("switch", { name: "Add to next round" }));
 
@@ -49,7 +49,8 @@ describe("CandidateQuestionPracticeActions", () => {
             },
         ));
         expect(screen.getByRole("switch", { name: "Added to next round" })).toHaveAttribute("aria-checked", "true");
-        expect(screen.getByRole("button", { name: "Next practice round, 1 queued" })).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: "Next round, 1 question" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Review next round" })).toBeInTheDocument();
 
         await user.click(screen.getByRole("switch", { name: "Added to next round" }));
 
@@ -58,7 +59,7 @@ describe("CandidateQuestionPracticeActions", () => {
             { kind: "remove", candidateNextRoundDraftItemId: "item-1" },
         ));
         expect(screen.getByRole("switch", { name: "Add to next round" })).toHaveAttribute("aria-checked", "false");
-        expect(screen.getByRole("button", { name: "Next practice round" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Review next round" })).not.toBeInTheDocument();
     });
 
     it("preserves a valid immediate action while suppressing an unresolvable queue claim", () => {

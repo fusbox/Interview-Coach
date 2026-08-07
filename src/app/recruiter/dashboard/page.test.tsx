@@ -28,6 +28,12 @@ describe("recruiter dashboard page", () => {
         expect(screen.getByText("Irma Castillo")).toBeInTheDocument();
         expect(screen.getByText("2 of 5 answered")).toBeInTheDocument();
         expect(screen.getByText("Email accepted")).toBeInTheDocument();
+        expect(screen.getByRole("region", { name: "Invitation summary" })).toHaveClass("surface-calm");
+        expect(screen.getByRole("region", { name: "Candidate progress" })).toHaveClass("surface-calm");
+        expect(screen.getByRole("link", { name: /Create invitations/ })).toHaveClass(
+            "ui-button",
+            "ui-button--primary",
+        );
         expect(screen.getByRole("link", { name: /View responses/ })).toHaveAttribute(
             "href",
             "/recruiter/sessions/50000000-0000-4000-8000-000000000001",

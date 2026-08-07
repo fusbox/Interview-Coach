@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { QuestionAssistanceDisclosure } from "./QuestionAssistanceDisclosure";
@@ -18,6 +19,7 @@ const strongResponseOutput = {
 };
 
 afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
 });
 
@@ -127,4 +129,78 @@ describe("QuestionAssistanceDisclosure", () => {
         expect(screen.getByRole("button", { name: "Hints" })).toBeDisabled();
         expect(screen.getByRole("button", { name: "Strong response" })).toBeDisabled();
     });
+
+    it("caps natural drawer growth above the composer and records slide direction", async () => {
+        const user = userEvent.setup();
+        const anchorRef = createRef<HTMLDivElement>();
+        const boundaryRef = createRef<HTMLDivElement>();
+        vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
+            const body = JSON.parse(String(init?.body)) as { assistanceKind: string };
+            return Response.json({
+                status: "ready",
+                output: body.assistanceKind === "hints" ? hintsOutput : strongResponseOutput,
+            });
+        }));
+        vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (
+            this: HTMLElement,
+        ) {
+            if (this === anchorRef.current) {
+                return createRect({ top: 120, left: 24, width: 720, height: 240 });
+            }
+            if (this === boundaryRef.current) {
+                return createRect({ top: 500, left: 24, width: 720, height: 228 });
+            }
+            return createRect({ top: 0, left: 0, width: 0, height: 0 });
+        });
+
+        render(
+            <>
+                <div ref={anchorRef} />
+                <QuestionAssistanceDisclosure
+                    anchorRef={anchorRef}
+                    boundaryRef={boundaryRef}
+                    endpoint="/candidate/session/session-1/question-assistance"
+                    questionKey="slot-1"
+                />
+                <div ref={boundaryRef} />
+            </>,
+        );
+
+        await user.click(screen.getByRole("button", { name: "Hints" }));
+        const dialog = await screen.findByRole("dialog", { name: "Hints & framework" });
+        expect(dialog).toHaveStyle({ top: "120px", left: "24px", width: "720px" });
+        expect(dialog.style.getPropertyValue("--assistance-boundary-distance")).toBe("380px");
+        expect(dialog.style.getPropertyValue("--assistance-viewport-limit"))
+            .toBe(`${window.innerHeight - 120 - 16}px`);
+
+        await user.click(screen.getByRole("button", { name: "Strong response" }));
+        expect(document.querySelector('[data-direction="forward"]')).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Hints" }));
+        expect(document.querySelector('[data-direction="backward"]')).toBeInTheDocument();
+    });
 });
+
+function createRect({
+    top,
+    left,
+    width,
+    height,
+}: {
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+}): DOMRect {
+    return {
+        x: left,
+        y: top,
+        top,
+        left,
+        width,
+        height,
+        right: left + width,
+        bottom: top + height,
+        toJSON: () => ({}),
+    };
+}

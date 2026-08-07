@@ -226,13 +226,21 @@ export function LabChapter({
                                 </p>
                                 <p className="lab-chapter__beat-body">{beat.body}</p>
                             </div>
-                            <div className="lab-chapter__meter" aria-hidden="true">
+                            <nav className="lab-chapter__meter" aria-label={`${label} walkthrough steps`}>
                                 {beats.map((item, index) => (
-                                    <span
+                                    <button
+                                        type="button"
                                         key={item.id}
                                         className={
                                             index < active ? "is-done" : index === active ? "is-active" : undefined
                                         }
+                                        aria-current={index === active ? "step" : undefined}
+                                        onClick={() => {
+                                            setActive(index);
+                                            if (rootRef.current) {
+                                                scrollChapterToBeat(rootRef.current, index, beats.length, !reducedMotion);
+                                            }
+                                        }}
                                         style={
                                             index === active
                                                 ? {
@@ -240,9 +248,12 @@ export function LabChapter({
                                                   }
                                                 : undefined
                                         }
-                                    />
+                                    >
+                                        <span>{index + 1}</span>
+                                        {item.navLabel}
+                                    </button>
                                 ))}
-                            </div>
+                            </nav>
                             <p className="lab-chapter__outcome">{outcome}</p>
                         </div>
 

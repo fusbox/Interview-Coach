@@ -28,6 +28,8 @@ type CandidateCompletedRoundRepairRouteDependencies = {
     ensureCoachUpdateArtifact?: (input: {
         candidateProfileId: string;
         sourceCandidatePracticeSessionId: string;
+        sourceQuestionKey?: string;
+        settledAt?: string;
     }) => Promise<CandidateCoachUpdateGenerationResult>;
     recordCompletedRoundRepairDiagnostic?: (event: CandidateCompletedRoundRepairDiagnostic) => void | Promise<void>;
 };
@@ -86,9 +88,34 @@ export async function handleCandidateCompletedRoundRepairRequest({
             headers: responseHeaders,
         });
     }
-    if (session.status !== "completed") {
+    const sourceQuestionKey = new URL(request.url).searchParams.get("question")?.trim() || null;
+    if (session.status !== "completed" && !sourceQuestionKey) {
         return Response.json({ error: "Coach Update repair requires a completed round." }, {
             status: 409,
+            headers: responseHeaders,
+        });
+    }
+    if (sourceQuestionKey) {
+        if (!ensureCoachUpdateArtifact) {
+            return Response.json({ error: "Coach Update repair is unavailable." }, {
+                status: 503,
+                headers: responseHeaders,
+            });
+        }
+        const coachUpdate = await ensureCoachUpdateArtifact({
+            candidateProfileId: identity.candidateProfileId,
+            sourceCandidatePracticeSessionId: sessionId,
+            sourceQuestionKey,
+            settledAt: new Date().toISOString(),
+        }).catch(() => ({
+            status: "coach_update_unavailable" as const,
+            reason: "generation_failed" as const,
+        }));
+        return Response.json({
+            status: "candidate_question_coach_update_repair",
+            coachUpdateStatus: coachUpdate.status,
+        }, {
+            status: coachUpdate.status === "coach_update_unavailable" ? 503 : 200,
             headers: responseHeaders,
         });
     }
@@ -104,15 +131,8 @@ export async function handleCandidateCompletedRoundRepairRequest({
         candidateProfileId: identity.candidateProfileId,
         sourceCandidatePracticeSessionId: sessionId,
     }).catch(() => createCandidateCompletedRoundAnalysisRepairUnavailableResult());
-    const coachUpdate = coachingRepair.allAnsweredOccurrencesAccepted && ensureCoachUpdateArtifact
-        ? await ensureCoachUpdateArtifact({
-            candidateProfileId: identity.candidateProfileId,
-            sourceCandidatePracticeSessionId: sessionId,
-        }).catch(() => ({
-            status: "coach_update_unavailable" as const,
-            reason: "generation_failed" as const,
-        }))
-        : null;
+    // Session-level artifacts are read-only compatibility. New Coach Updates are
+    // generated only for an exact settled-question checkpoint.
 
     if (recordCompletedRoundRepairDiagnostic) {
         try {
@@ -126,20 +146,16 @@ export async function handleCandidateCompletedRoundRepairRequest({
                 retryableCount: coachingRepair.retryableCount,
                 unavailableCount: coachingRepair.unavailableCount,
                 invalidLineageCount: coachingRepair.invalidLineageCount,
-                coachUpdateStatus: coachUpdate?.status ?? "not_attempted",
+                coachUpdateStatus: "not_attempted",
             });
         } catch {
             // Diagnostic delivery cannot change the repair result.
         }
     }
 
-    const responseStatus = coachingRepair.allAnsweredOccurrencesAccepted
-        && (!coachUpdate || coachUpdate.status === "coach_update_unavailable")
-        ? 503
-        : 200;
     return Response.json({
         status: "candidate_completed_round_coaching_repair",
         coachingRepair,
-        coachUpdateStatus: coachUpdate?.status ?? "not_attempted",
-    }, { status: responseStatus, headers: responseHeaders });
+        coachUpdateStatus: "not_attempted",
+    }, { status: 200, headers: responseHeaders });
 }

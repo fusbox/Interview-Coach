@@ -18,7 +18,7 @@ begin
   select count(*) into role_count
   from public.app_user_roles
   where user_id = '20000000-0000-4000-8000-000000000001'
-    and role = 'recruiter';
+    and role in ('recruiter', 'admin');
 
   select count(*) into profile_count
   from public.recruiter_profiles
@@ -29,7 +29,7 @@ begin
   where user_id = '20000000-0000-4000-8000-000000000001'
     and lifecycle_state = 'active';
 
-  if user_count <> 1 or role_count <> 1 or profile_count <> 1 or ai_eval_grant_count <> 1 then
+  if user_count <> 1 or role_count <> 2 or profile_count <> 1 or ai_eval_grant_count <> 1 then
     raise exception 'Recruiter development seed is incomplete.';
   end if;
 end $$;

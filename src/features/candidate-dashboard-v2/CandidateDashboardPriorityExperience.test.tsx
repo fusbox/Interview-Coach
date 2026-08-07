@@ -127,12 +127,28 @@ describe("CandidateDashboardPriorityExperience", () => {
 
         fireEvent.click(screen.getByRole("button", { name: "View Coach Plan" }));
         const dialog = screen.getByRole("dialog", { name: "Material Handler I" });
+        const header = dialog.querySelector(".candidate-opened-surface-header");
+        const map = within(dialog).getByRole("complementary", { name: "Coach plan map" });
+        expect(header).not.toBeNull();
+        expect(within(header as HTMLElement).getByRole("tablist", {
+            name: "Coach plan views",
+        })).toBeInTheDocument();
+        expect(within(map).queryByRole("tablist", { name: "Coach plan views" })).not.toBeInTheDocument();
         expect(within(dialog).getByRole("tab", { name: "Questions" })).toHaveAttribute("aria-selected", "true");
         expect(within(dialog).getByText("What interests you about this role?")).toBeInTheDocument();
 
         fireEvent.click(within(dialog).getByRole("tab", { name: "Categories" }));
-        fireEvent.click(within(dialog).getByRole("button", { name: /Behavioral.*1 question/i }));
-        expect(within(dialog).getByRole("heading", { name: "Past examples and personal action." })).toBeInTheDocument();
+        fireEvent.click(within(dialog).getByRole("button", {
+            name: "Behavioral. Question 2, Prep state unavailable",
+        }));
+        expect(within(dialog).getByRole("article", {
+            name: "Behavioral answer guidance",
+        })).toBeInTheDocument();
+        expect(within(dialog).getByRole("list", {
+            name: "Answer shape for Behavioral",
+        })).toBeInTheDocument();
+        expect(within(dialog).getByText("Answer directly.")).toBeInTheDocument();
+        expect(within(dialog).getByText("Generic answers.")).toBeInTheDocument();
         expect(dialog.querySelector(".candidate-coach-plan-coverage")).not.toBeInTheDocument();
 
         fireEvent.click(within(dialog).getByRole("tab", { name: "Questions" }));
@@ -459,6 +475,14 @@ function createDetailItem({
     return {
         status: "candidate_coach_update_question_detail",
         questionKey,
+        sourceOccurrence: {
+            candidatePracticeSessionId: "session-1",
+            questionKey,
+        },
+        canonicalQuestion: {
+            candidatePracticeSessionId: "session-1",
+            questionKey,
+        },
         questionNumber,
         category,
         questionText: `Question ${questionNumber} prompt`,

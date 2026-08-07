@@ -176,6 +176,7 @@ function validateVercelApp(env: Environment, state: MutableValidation) {
     }
 
     requireExact(env, state, target, "CANDIDATE_HOST_LAUNCH_DEV_MODE", "false");
+    requireExact(env, state, target, "CANDIDATE_ENGAGEMENT_REPORTING_ENABLED", "false");
     for (const variable of LOCAL_ONLY_PRODUCTION_KEYS) {
         requireAbsent(env, state, target, variable);
     }

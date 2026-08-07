@@ -1,0 +1,196 @@
+.trigger {
+    position: fixed;
+    z-index: var(--z-tooltip);
+    inset-block-end: 0;
+    inset-inline-start: 0;
+    inline-size: 3.5rem;
+    block-size: 3.5rem;
+    border: 0;
+    background: transparent;
+    opacity: 0;
+    cursor: default;
+}
+
+.inspector {
+    position: fixed;
+    z-index: var(--z-tooltip);
+    inset-inline-end: var(--gap-section);
+    inset-block-end: var(--gap-section);
+    display: grid;
+    grid-template-rows: auto auto auto auto minmax(10rem, 1fr);
+    inline-size: min(25rem, calc(100vw - 2 * var(--gap-section)));
+    max-block-size: min(38rem, calc(100dvh - 2 * var(--gap-section)));
+    overflow: hidden;
+    color: rgb(var(--foreground));
+    background: rgb(var(--surface) / 0.94);
+    border: 1px solid rgb(var(--border) / 0.72);
+    border-radius: var(--radius-card);
+    box-shadow: var(--elevation-modal);
+    backdrop-filter: blur(20px) saturate(120%);
+}
+
+.header,
+.header > div,
+.persistence,
+.logHeader,
+.logHeader button,
+.log article > div {
+    display: flex;
+    align-items: center;
+}
+
+.header {
+    justify-content: space-between;
+    min-block-size: 3.5rem;
+    padding: var(--gap-inline) var(--pad-card);
+    border-block-end: 1px solid rgb(var(--border) / 0.62);
+}
+
+.header > div {
+    gap: var(--gap-inline);
+}
+
+.header strong {
+    font-size: var(--type-label-size);
+    line-height: var(--type-label-line);
+}
+
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    background: rgb(var(--border) / 0.58);
+}
+
+.metric {
+    display: grid;
+    gap: 0.2rem;
+    min-inline-size: 0;
+    padding: var(--gap-cluster) var(--pad-card);
+    background: rgb(var(--surface));
+}
+
+.metric span,
+.logHeader,
+.persistence span,
+.persistence small {
+    color: rgb(var(--muted-foreground));
+    font-size: var(--type-label-size);
+    line-height: var(--type-label-line);
+}
+
+.metric strong {
+    font-size: var(--type-title-size);
+    line-height: var(--type-title-line);
+}
+
+.metric[data-tone="active"] strong {
+    color: rgb(var(--accent));
+}
+
+.metric[data-tone="idle"] strong {
+    color: rgb(var(--warning));
+}
+
+.persistence {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.25rem var(--gap-inline);
+    padding: var(--gap-cluster) var(--pad-card);
+    background: rgb(var(--surface-alt));
+}
+
+.persistence small {
+    grid-column: 2 / -1;
+}
+
+.persistence small[data-state="error"] {
+    color: rgb(var(--destructive));
+}
+
+.logHeader {
+    justify-content: space-between;
+    padding: var(--gap-inline) var(--pad-card);
+    border-block: 1px solid rgb(var(--border) / 0.62);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.logHeader button {
+    gap: 0.3rem;
+    padding: 0;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.log {
+    min-block-size: 0;
+    overflow-y: auto;
+    padding: var(--gap-inline);
+}
+
+.log article {
+    position: relative;
+    display: grid;
+    gap: 0.25rem;
+    padding: var(--gap-inline) var(--gap-cluster);
+    background: rgb(var(--surface-alt) / 0.76);
+    border-radius: var(--radius-row);
+}
+
+.log article + article {
+    margin-block-start: var(--space-1);
+}
+
+.log article > div {
+    justify-content: space-between;
+    gap: var(--gap-inline);
+}
+
+.log article strong {
+    color: rgb(var(--primary));
+    font-size: var(--type-label-size);
+    font-weight: 700;
+    line-height: var(--type-label-line);
+    text-transform: uppercase;
+}
+
+.log article time,
+.log article p,
+.log article span,
+.empty {
+    color: rgb(var(--muted-foreground));
+    font-size: var(--type-label-size);
+    line-height: var(--type-label-line);
+}
+
+.log article p,
+.empty {
+    margin: 0;
+}
+
+.log article span {
+    position: absolute;
+    inset-inline-end: var(--gap-cluster);
+    inset-block-end: var(--gap-inline);
+    color: rgb(var(--accent));
+}
+
+.empty {
+    display: grid;
+    min-block-size: 9rem;
+    place-items: center;
+    padding: var(--pad-card);
+    text-align: center;
+}
+
+@media (max-width: 35rem) {
+    .inspector {
+        inset-inline: var(--gap-inline);
+        inset-block-end: var(--gap-inline);
+        inline-size: auto;
+    }
+}

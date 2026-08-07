@@ -8,6 +8,8 @@ export type SurfaceProminence =
     | "feature-dark"
     | "glass-raised"
     | "glass-quiet"
+    | "coach-quiet"
+    | "plan"
     | "spotlight";
 
 export type SurfaceState =
@@ -25,6 +27,8 @@ const surfaceProminenceClasses: Record<SurfaceProminence, string> = {
     "feature-dark": "surface-feature-dark",
     "glass-raised": "surface-glass-raised",
     "glass-quiet": "surface-glass-quiet",
+    "coach-quiet": "surface-coach-quiet",
+    plan: "surface-plan",
     spotlight: "surface-spotlight",
 };
 

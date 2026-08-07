@@ -1,4 +1,4 @@
-import { parseAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
+import { parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 
 import {
     resolveCandidateAnswerAnalysisRecovery,
@@ -210,7 +210,7 @@ function isAcceptedCandidateCoachingRun(run: CandidateAnswerEvaluationRunRecord)
         return false;
     }
 
-    const accepted = parseAcceptedEvidenceFirstEvaluatorRun(run.result);
+    const accepted = parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun(run.result);
     return Boolean(
         accepted
         && accepted.evaluationRunId === run.candidateAnswerEvaluationRunId

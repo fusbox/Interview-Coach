@@ -33,38 +33,118 @@
         rgb(var(--primary-solid)),
         rgb(var(--primary-solid-deep))
     );
-
-    /* Candidate dashboard Coach Desk material roles. The blue canvas owns color;
-       neutral glass components only reveal it through tokenized translucency. */
-    --dashboard-canvas-max-width: 26.875rem;
-    /* Preserve the reviewed 428px lab-frame confluence on narrow screens, then
-       clamp its radial fields around the centered Coach Desk at wider widths. */
-    --dashboard-canvas-field-inline-offset: min(64vw, 17.2rem);
-    --dashboard-canvas-field-leading-width: min(144vw, 38.7rem);
-    --dashboard-canvas-field-trailing-width: min(136vw, 36.55rem);
-    --dashboard-canvas-field-height: min(82dvh, 43.25rem);
-    --dashboard-canvas-field-leading-block: max(-8dvh, -4.25rem);
-    --dashboard-canvas-field-trailing-block: min(78dvh, 41rem);
-    --dashboard-canvas-background:
-        radial-gradient(
-            var(--dashboard-canvas-field-leading-width) var(--dashboard-canvas-field-height)
-                at calc(50% - var(--dashboard-canvas-field-inline-offset)) var(--dashboard-canvas-field-leading-block),
-            rgb(var(--dashboard-canvas-blue-1)) 0,
-            rgb(var(--dashboard-canvas-blue-2)) 50%,
-            transparent 84%
+    /* Accessible accent-green ink for coach guidance on neutral surfaces. */
+    --coach-guidance-accent: color-mix(
+        in srgb,
+        rgb(var(--accent)) 68%,
+        rgb(var(--foreground))
+    );
+    --coach-evidence-highlight: color-mix(
+        in srgb,
+        rgb(var(--primary)) 28%,
+        rgb(var(--surface-base))
+    );
+    --coach-evidence-highlight-active: color-mix(
+        in srgb,
+        rgb(var(--primary)) 40%,
+        rgb(var(--surface-base))
+    );
+    /* Opened Coach Update: one quiet workbench with three presentation depths.
+       The transcript is the primary reading surface, observation is reflective,
+       and Try next is the executable coaching field. */
+    --coach-update-detail-workspace-background: color-mix(
+        in srgb,
+        rgb(var(--surface-subtle)) 72%,
+        rgb(var(--surface-overlay))
+    );
+    --coach-update-detail-transcript-background: linear-gradient(
+        145deg,
+        rgb(var(--surface-base)),
+        rgb(var(--surface-raised))
+    );
+    --coach-update-detail-observation-background: color-mix(
+        in srgb,
+        rgb(var(--primary-soft)) 72%,
+        rgb(var(--surface-base))
+    );
+    --coach-update-detail-guidance-background: linear-gradient(
+        145deg,
+        color-mix(
+            in srgb,
+            rgb(var(--accent-solid)) 72%,
+            rgb(var(--foreground))
         ),
-        radial-gradient(
-            var(--dashboard-canvas-field-trailing-width) var(--dashboard-canvas-field-height)
-                at calc(50% + var(--dashboard-canvas-field-inline-offset)) var(--dashboard-canvas-field-trailing-block),
-            rgb(var(--dashboard-canvas-blue-3)) 0,
-            rgb(var(--dashboard-canvas-blue-4)) 52%,
-            transparent 84%
+        color-mix(
+            in srgb,
+            rgb(var(--accent-solid)) 72%,
+            rgb(var(--primary-solid-deep))
+        )
+    );
+    --coach-update-detail-guidance-foreground: rgb(var(--solid-foreground));
+    --coach-update-detail-shape-background: linear-gradient(
+        145deg,
+        rgb(var(--solid-foreground) / 0.9),
+        rgb(var(--solid-foreground) / 0.72)
+    );
+    --coach-update-detail-shape-foreground: color-mix(
+        in srgb,
+        rgb(var(--accent-solid)) 72%,
+        rgb(var(--foreground))
+    );
+    --coach-update-detail-shape-contour: rgb(var(--solid-foreground) / 0.4);
+    --coach-update-detail-shape-highlight: rgb(var(--solid-foreground) / 0.62);
+    --coach-update-detail-nav-background: rgb(var(--surface-subtle) / 0.72);
+    --coach-update-detail-contour: rgb(var(--border) / 0.56);
+    --coach-update-detail-highlight: rgb(var(--surface-base) / 0.88);
+    /* Next Round builder: a blue assembly tray distinguishes committed queue
+       contents from the quieter plan inventory without relying on borders. */
+    --next-round-builder-workspace-background: color-mix(
+        in srgb,
+        rgb(var(--surface-subtle)) 76%,
+        rgb(var(--surface-overlay))
+    );
+    --next-round-builder-queue-background: linear-gradient(
+        145deg,
+        rgb(var(--primary-solid)),
+        color-mix(
+            in srgb,
+            rgb(var(--primary-solid-deep)) 86%,
+            rgb(var(--primary-solid))
+        )
+    );
+    --next-round-builder-queue-foreground: rgb(var(--solid-foreground));
+    --next-round-builder-queue-muted: rgb(var(--solid-foreground) / 0.78);
+    --next-round-builder-queue-item-background: rgb(var(--solid-foreground) / 0.13);
+    --next-round-builder-queue-item-hover-background: rgb(var(--solid-foreground) / 0.2);
+    --next-round-builder-queue-contour: rgb(var(--solid-foreground) / 0.24);
+    --next-round-builder-add-background: color-mix(
+        in srgb,
+        rgb(var(--primary-soft)) 74%,
+        rgb(var(--surface-raised))
+    );
+    --next-round-builder-add-hover-background: rgb(var(--primary-soft));
+    --next-round-builder-add-foreground: rgb(var(--primary));
+    /* Candidate dashboard Coach Desk material roles. Quiet Runway layers one
+       broad linear light field over a restrained vertical blue atmosphere. */
+    --dashboard-canvas-max-width: 26.875rem;
+    --dashboard-canvas-wide-max-width: var(--grid-focused-max);
+    --dashboard-canvas-runway-edge: rgb(var(--solid-foreground) / 0.1);
+    --dashboard-canvas-runway-center: rgb(var(--solid-foreground) / 0.3);
+    --dashboard-canvas-background:
+        linear-gradient(
+            90deg,
+            transparent 0,
+            var(--dashboard-canvas-runway-edge) 16%,
+            var(--dashboard-canvas-runway-center) 32%,
+            var(--dashboard-canvas-runway-center) 68%,
+            var(--dashboard-canvas-runway-edge) 84%,
+            transparent 100%
         ),
         linear-gradient(
-            145deg,
+            180deg,
             rgb(var(--dashboard-canvas-blue-5)) 0%,
-            rgb(var(--dashboard-canvas-blue-6)) 42%,
-            rgb(var(--dashboard-canvas-blue-7)) 64%,
+            rgb(var(--dashboard-canvas-blue-6)) 38%,
+            rgb(var(--dashboard-canvas-blue-7)) 70%,
             rgb(var(--dashboard-canvas-blue-8)) 100%
         );
     --dashboard-glass-raised-background: rgb(var(--surface) / 0.64);
@@ -76,6 +156,68 @@
     --dashboard-glass-control-hover-background: rgb(var(--surface) / 0.52);
     --dashboard-glass-raised-contour: rgb(var(--glass-tint) / 0.7);
     --dashboard-glass-quiet-contour: rgb(var(--glass-tint) / 0.48);
+    /* Reviewed Coach Update history: an opaque, low-prominence blue docket.
+       Blue identifies available coaching; preparedness colors remain separate. */
+    --coach-update-quiet-background: color-mix(
+        in srgb,
+        rgb(var(--primary-soft)) 82%,
+        rgb(var(--surface))
+    );
+    --coach-update-quiet-hover-background: color-mix(
+        in srgb,
+        rgb(var(--primary-soft)) 92%,
+        rgb(var(--surface))
+    );
+    --coach-update-quiet-foreground: color-mix(
+        in srgb,
+        rgb(var(--primary-deep)) 72%,
+        rgb(var(--foreground))
+    );
+    --coach-update-quiet-muted: color-mix(
+        in srgb,
+        rgb(var(--primary-deep)) 58%,
+        rgb(var(--foreground))
+    );
+    --coach-update-quiet-contour: rgb(var(--surface));
+    /* Coach Plan: an opaque matte-blue reference surface. It stays below the
+       gradient spotlight in emphasis and does not depend on canvas color. */
+    --coach-plan-surface-background: rgb(var(--primary-solid));
+    --coach-plan-surface-hover-background: rgb(var(--primary-solid-hover));
+    --coach-plan-surface-foreground: rgb(var(--solid-foreground));
+    --coach-plan-surface-muted: rgb(var(--solid-foreground) / 0.78);
+    --coach-plan-surface-contour: rgb(var(--solid-foreground) / 0.18);
+    --coach-plan-wheel-plate-start: color-mix(
+        in srgb,
+        rgb(var(--solid-foreground) / 0.78) 88%,
+        rgb(var(--primary-solid) / 0.78)
+    );
+    --coach-plan-wheel-plate-end: color-mix(
+        in srgb,
+        rgb(var(--solid-foreground) / 0.68) 70%,
+        rgb(var(--primary-solid) / 0.68)
+    );
+    --coach-plan-wheel-well-start: color-mix(
+        in srgb,
+        rgb(var(--solid-foreground)) 96%,
+        rgb(var(--primary-solid))
+    );
+    --coach-plan-wheel-well-end: color-mix(
+        in srgb,
+        rgb(var(--solid-foreground)) 84%,
+        rgb(var(--primary-solid))
+    );
+    --coach-plan-wheel-well-highlight: rgb(var(--solid-foreground) / 0.9);
+    --coach-plan-wheel-well-rim: rgb(var(--primary-solid-deep) / 0.08);
+    --coach-plan-wheel-well-contour: rgb(var(--solid-foreground) / 0.94);
+    --coach-plan-wheel-ink: rgb(var(--primary-solid-deep));
+    --coach-plan-wheel-muted: color-mix(
+        in srgb,
+        rgb(var(--primary-solid-deep)) 72%,
+        rgb(var(--solid-foreground))
+    );
+    --coach-plan-wheel-track: rgb(var(--primary-solid-deep) / 0.18);
+    --coach-plan-wheel-strong-ink: rgb(var(--prep-strong-text));
+    --coach-plan-wheel-shadow: rgb(var(--primary-solid-deep) / 0.2);
     --dashboard-glass-filter-raised: blur(18px) saturate(112%);
     --dashboard-glass-filter-quiet: blur(16px);
     --dashboard-state-icon-background: rgb(var(--glass-tint) / 0.28);
@@ -98,6 +240,12 @@
     );
     --dashboard-plan-gauge-size: 6.75rem;
     --dashboard-plan-gauge-size-compact: 5.75rem;
+    /* Snapshot-comparison roles for charts where neither series implies
+       better/worse valence. Preparedness colors remain reserved for bands. */
+    --chart-comparison-current: rgb(var(--primary));
+    --chart-comparison-current-fill: rgb(var(--primary) / 0.2);
+    --chart-comparison-baseline: rgb(var(--accent-alt));
+    --chart-comparison-baseline-fill: rgb(var(--accent-alt) / 0.13);
 
     /* ── Motion · duration + ease paired by intent (motion.css) ── */
     /* Controls move fast & standard; surfaces move slower & emphasized. */
@@ -121,6 +269,8 @@
     --cutout-notch-depth: var(--button-height); /* 44px */
     --cutout-notch-radius: var(--radius-widget); /* 16px */
     --cutout-surface-radius: var(--radius-card); /* 24px */
+    --cutout-surface-edge-width: 1px;
+    --cutout-question-rim-width: 3px;
     --cutout-control-offset: calc(
         (var(--cutout-notch-depth) - var(--icon-button-size-default)) / 2
     );
@@ -138,28 +288,40 @@
 }
 
 .dark {
-    --dashboard-canvas-background:
-        radial-gradient(
-            var(--dashboard-canvas-field-leading-width) var(--dashboard-canvas-field-height)
-                at calc(50% - var(--dashboard-canvas-field-inline-offset)) var(--dashboard-canvas-field-leading-block),
-            rgb(var(--dashboard-canvas-blue-1)) 0,
-            rgb(var(--dashboard-canvas-blue-2)) 50%,
-            transparent 84%
-        ),
-        radial-gradient(
-            var(--dashboard-canvas-field-trailing-width) var(--dashboard-canvas-field-height)
-                at calc(50% + var(--dashboard-canvas-field-inline-offset)) var(--dashboard-canvas-field-trailing-block),
-            rgb(var(--dashboard-canvas-blue-3)) 0,
-            rgb(var(--dashboard-canvas-blue-4)) 52%,
-            transparent 84%
-        ),
-        linear-gradient(
-            145deg,
-            rgb(var(--dashboard-canvas-blue-5)) 0%,
-            rgb(var(--dashboard-canvas-blue-6)) 42%,
-            rgb(var(--dashboard-canvas-blue-7)) 64%,
-            rgb(var(--dashboard-canvas-blue-8)) 100%
-        );
+    --coach-guidance-accent: rgb(var(--accent));
+    --coach-update-detail-workspace-background: color-mix(
+        in srgb,
+        rgb(var(--surface-base)) 76%,
+        rgb(var(--surface-overlay))
+    );
+    --coach-update-detail-transcript-background: linear-gradient(
+        145deg,
+        rgb(var(--surface-raised)),
+        rgb(var(--surface-alt))
+    );
+    --coach-update-detail-observation-background: color-mix(
+        in srgb,
+        rgb(var(--primary-soft)) 58%,
+        rgb(var(--surface-alt))
+    );
+    --coach-update-detail-guidance-background: linear-gradient(
+        145deg,
+        rgb(var(--accent-solid)),
+        color-mix(
+            in srgb,
+            rgb(var(--accent-solid)) 78%,
+            rgb(var(--primary-solid-deep))
+        )
+    );
+    --coach-update-detail-shape-foreground: rgb(var(--accent-solid));
+    --coach-update-detail-nav-background: rgb(var(--surface-alt) / 0.76);
+    --coach-update-detail-contour: rgb(var(--glass-tint) / 0.11);
+    --coach-update-detail-highlight: rgb(var(--glass-tint) / 0.08);
+    --next-round-builder-add-background: rgb(var(--primary-solid));
+    --next-round-builder-add-hover-background: rgb(var(--primary-solid-hover));
+    --next-round-builder-add-foreground: rgb(var(--solid-foreground));
+    --dashboard-canvas-runway-edge: rgb(var(--solid-foreground) / 0.015);
+    --dashboard-canvas-runway-center: rgb(var(--solid-foreground) / 0.04);
     --dashboard-glass-raised-background: rgb(var(--surface-alt) / 0.68);
     --dashboard-glass-plan-background: rgb(var(--surface-alt) / 0.68);
     --dashboard-glass-quiet-background: rgb(var(--surface-alt) / 0.14);
@@ -169,6 +331,57 @@
     --dashboard-glass-control-hover-background: rgb(var(--surface-alt) / 0.5);
     --dashboard-glass-raised-contour: rgb(var(--glass-tint) / 0.11);
     --dashboard-glass-quiet-contour: rgb(var(--glass-tint) / 0.11);
+    --coach-update-quiet-background: color-mix(
+        in srgb,
+        rgb(var(--primary-solid-deep)) 78%,
+        rgb(var(--primary-solid))
+    );
+    --coach-update-quiet-hover-background: color-mix(
+        in srgb,
+        rgb(var(--primary-solid-deep)) 68%,
+        rgb(var(--primary-solid))
+    );
+    --coach-update-quiet-foreground: rgb(var(--solid-foreground));
+    --coach-update-quiet-muted: color-mix(
+        in srgb,
+        rgb(var(--primary)) 32%,
+        rgb(var(--solid-foreground))
+    );
+    --coach-update-quiet-contour: rgb(var(--solid-foreground) / 0.12);
+    --coach-plan-surface-background: color-mix(
+        in srgb,
+        rgb(var(--primary-solid)) 74%,
+        rgb(var(--primary-solid-deep))
+    );
+    --coach-plan-surface-hover-background: color-mix(
+        in srgb,
+        rgb(var(--primary-solid-hover)) 78%,
+        rgb(var(--primary-solid-deep))
+    );
+    --coach-plan-surface-foreground: rgb(var(--solid-foreground));
+    --coach-plan-surface-muted: rgb(var(--solid-foreground) / 0.74);
+    --coach-plan-surface-contour: rgb(var(--solid-foreground) / 0.13);
+    --coach-plan-wheel-well-start: color-mix(
+        in srgb,
+        rgb(var(--surface-alt)) 84%,
+        rgb(var(--primary-solid))
+    );
+    --coach-plan-wheel-well-end: color-mix(
+        in srgb,
+        rgb(var(--surface-alt)) 70%,
+        rgb(var(--primary-solid-deep))
+    );
+    --coach-plan-wheel-well-highlight: rgb(var(--solid-foreground) / 0.1);
+    --coach-plan-wheel-well-rim: rgb(var(--solid-foreground) / 0.055);
+    --coach-plan-wheel-well-contour: rgb(var(--solid-foreground) / 0.12);
+    --coach-plan-wheel-ink: rgb(var(--solid-foreground) / 0.94);
+    --coach-plan-wheel-muted: rgb(var(--solid-foreground) / 0.62);
+    --coach-plan-wheel-track: rgb(var(--solid-foreground) / 0.16);
+    --coach-plan-wheel-strong-ink: color-mix(
+        in srgb,
+        rgb(var(--prep-strong)) 68%,
+        rgb(var(--primary-solid-deep))
+    );
     --dashboard-state-icon-background: rgb(var(--glass-tint) / 0.14);
     --dashboard-state-icon-contour: rgb(var(--glass-tint) / 0.18);
     --dashboard-spotlight-radial-light: radial-gradient(

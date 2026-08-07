@@ -17,6 +17,7 @@ describe("candidate staged feedback recovery", () => {
         render(
             <CandidateStagedFeedback
                 interaction={interaction}
+                {...feedbackSource}
                 isCompletingSession={false}
                 onPersistAction={async () => true}
                 onAdvanceQuestion={vi.fn()}
@@ -27,11 +28,31 @@ describe("candidate staged feedback recovery", () => {
 
         const dialog = await screen.findByRole("dialog");
         expect(dialog).toHaveAttribute("aria-modal", "true");
-        expect(dialog).toHaveAccessibleName("Coach feedback");
+        expect(dialog).toHaveAccessibleName("Your coaching");
         expect(document.body).toHaveStyle({ overflow: "hidden" });
-        expect(screen.queryByText(interaction.stages[0].label)).not.toBeInTheDocument();
-        expect(screen.queryByText(interaction.stages[0].title)).not.toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Your coaching" })).toHaveClass("sr-only");
+        expect(screen.getByRole("heading", { name: interaction.stages[0].title })).toHaveClass("sr-only");
         expect(screen.getByText(interaction.stages[0].body)).toBeInTheDocument();
+        expect(screen.getByText("Question 1 of 3")).toBeInTheDocument();
+        expect(screen.getByText("Behavioral")).toBeInTheDocument();
+
+        await user.click(screen.getByText("Review question and answer"));
+        expect(screen.getByText(feedbackSource.question.text)).toBeInTheDocument();
+        expect(screen.getByText(feedbackSource.answerText)).toBeInTheDocument();
+
+        const coachAvatar = dialog.querySelector(".candidate-staged-feedback__mark.candidate-coach-avatar");
+        expect(coachAvatar).toHaveClass("candidate-coach-avatar--surface-frame");
+        expect(coachAvatar?.querySelector(".candidate-coach-avatar__light"))
+            .toHaveAttribute("src", "/coach-avatar-surface-light.svg");
+        expect(coachAvatar?.querySelector(".candidate-coach-avatar__dark"))
+            .toHaveAttribute("src", "/coach-avatar-surface-dark.svg");
+
+        const primaryAction = interaction.stages[0].actions.find((action) => action.emphasis === "primary")!;
+        const secondaryAction = interaction.stages[0].actions.find((action) => action.emphasis === "secondary")!;
+        expect(screen.getByRole("button", { name: primaryAction.label }))
+            .toHaveClass("candidate-button--primary");
+        expect(screen.getByRole("button", { name: secondaryAction.label }))
+            .toHaveClass("candidate-button--secondary");
 
         const stageAction = interaction.stages[0].actions.find((action) => (
             action.transition === "show_feedback_stage"
@@ -41,9 +62,10 @@ describe("candidate staged feedback recovery", () => {
         await user.click(screen.getByRole("button", { name: stageAction.label }));
         const targetStage = interaction.stages.find((stage) => stage.id === stageAction.targetStageId)!;
         await screen.findByText(targetStage.body);
-        expect(screen.queryByText(targetStage.label)).not.toBeInTheDocument();
-        expect(screen.queryByText(targetStage.title)).not.toBeInTheDocument();
-        expect(screen.getByRole("heading", { name: "Coach feedback" })).toHaveFocus();
+        expect(screen.getByText(interaction.stages[0].body)).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: targetStage.title }))
+            .toHaveClass("sr-only");
+        expect(screen.getByRole("heading", { name: targetStage.title })).toHaveFocus();
     });
 
     it("applies a durably selected next-question transition once on recovery", async () => {
@@ -56,6 +78,7 @@ describe("candidate staged feedback recovery", () => {
         render(
             <CandidateStagedFeedback
                 interaction={interaction}
+                {...feedbackSource}
                 savedActionEvent={createCandidateFeedbackActionEvent({
                     interaction,
                     stageId: interaction.stages[0].id,
@@ -73,6 +96,50 @@ describe("candidate staged feedback recovery", () => {
         await waitFor(() => expect(onAdvanceQuestion).toHaveBeenCalledTimes(1));
     });
 
+    it("recovers forward when a saved navigation event targets a deduplicated stage", async () => {
+        const biggestUpgrade = "Mention one specific way you would manage the schedule change.";
+        const interaction = createCandidateFeedbackInteraction({
+            analysisSnapshot: createCandidateAnswerAnalysisProviderResultFixture({
+                evidenceFirst: {
+                    candidateFeedback: {
+                        acknowledgement: "You confirmed your availability and named a practical constraint.",
+                        primaryStrength: null,
+                        biggestUpgrade,
+                        redoPrompt: null,
+                        patternSuggestion: null,
+                        deliveryNote: null,
+                    },
+                    intervention: "polish_then_continue",
+                },
+            }),
+            isLastQuestion: false,
+        });
+
+        render(
+            <CandidateStagedFeedback
+                interaction={interaction}
+                {...feedbackSource}
+                savedActionEvent={{
+                    status: "feedback_action_selected",
+                    answer: interaction.answer,
+                    stageId: "acknowledgement",
+                    actionKind: "explore_feedback",
+                    transition: "show_feedback_stage",
+                    targetStageId: "content_coaching",
+                    selectedAt: "2026-07-20T12:00:00.000Z",
+                }}
+                isCompletingSession={false}
+                onPersistAction={async () => true}
+                onAdvanceQuestion={vi.fn()}
+                onFinishSession={vi.fn()}
+                onRetryAnswer={vi.fn()}
+            />,
+        );
+
+        expect(await screen.findByText(biggestUpgrade)).toBeInTheDocument();
+        expect(screen.getByText("Feedback step 2 of 2: Next step")).toBeInTheDocument();
+    });
+
     it("applies a durably selected finish transition once on recovery", async () => {
         const interaction = createCandidateFeedbackInteraction({ analysisSnapshot, isLastQuestion: true });
         const action = interaction.stages[0].actions.find((candidate) => candidate.transition === "finish_session")!;
@@ -81,6 +148,7 @@ describe("candidate staged feedback recovery", () => {
         render(
             <CandidateStagedFeedback
                 interaction={interaction}
+                {...feedbackSource}
                 savedActionEvent={createCandidateFeedbackActionEvent({
                     interaction,
                     stageId: interaction.stages[0].id,
@@ -98,6 +166,16 @@ describe("candidate staged feedback recovery", () => {
         await waitFor(() => expect(onFinishSession).toHaveBeenCalledTimes(1));
     });
 });
+
+const feedbackSource = {
+    question: {
+        number: 1,
+        count: 3,
+        categoryLabel: "Behavioral",
+        text: "Tell me about a time you improved a difficult process.",
+    },
+    answerText: "I clarified the handoff, documented the new steps, and reduced rework.",
+};
 
 const analysisSnapshot = createCandidateAnswerAnalysisProviderResultFixture({
     analyzedAt: "2026-07-20T11:00:00.000Z",

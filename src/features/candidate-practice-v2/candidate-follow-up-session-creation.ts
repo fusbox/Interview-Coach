@@ -15,6 +15,7 @@ import type {
     CandidatePracticeIntentItem,
     CandidatePracticeIntentRecord,
 } from "./candidate-follow-up-practice-intent";
+import { hasCandidateActivePracticeSessionForContext } from "./candidate-active-practice-session";
 
 export type CandidateFollowUpPracticeSessionMetadata = {
     status: "candidate_follow_up_practice_session";
@@ -91,6 +92,12 @@ export function createCandidateFollowUpSessionInputFromIntent({
         intent.lifecycleState !== "ready"
         || intent.candidateProfileId !== candidateProfileId
         || intent.items.length < 1
+        || hasCandidateActivePracticeSessionForContext({
+            candidateProfileId,
+            roleProfileId: intent.roleProfileId,
+            legacyTargetRole: intent.targetRole,
+            practiceSessions: existingPracticeSessions,
+        })
     ) {
         return null;
     }

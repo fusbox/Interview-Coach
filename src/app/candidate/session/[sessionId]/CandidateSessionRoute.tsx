@@ -14,6 +14,12 @@ import { isCandidateAnswerAnalysisRuntimeAvailable } from "@/features/candidate-
 import { isSessionQuestionAudioRuntimeAvailable } from "@/features/interview-session-v2/session-question-audio-runtime";
 import { isVoiceTranscriptionRuntimeAvailable } from "@/features/interview-session-v2/voice-transcription-runtime";
 import {
+    isCandidateEngagementInspectorEnabled,
+    isCandidateEngagementReportingEnabled,
+} from "@/features/candidate-engagement-v2/candidate-engagement-config";
+import type { CandidateEngagementSessionSummary } from "@/features/candidate-engagement-v2/candidate-engagement-contract";
+import { createCandidateEngagementRepository } from "@/features/candidate-engagement-v2/candidate-engagement-repository";
+import {
     createCandidateSessionCompletionLinks,
     createSharedSessionContext,
     parseSessionId,
@@ -22,6 +28,8 @@ import {
 
 type CandidateSessionPageSearchParams = {
     entry?: string | string[];
+    pace?: string | string[];
+    question?: string | string[];
 };
 
 export default async function CandidateSessionPage({
@@ -44,6 +52,11 @@ type CandidateSessionPageDependencies = {
     resolveDurableSession?: (input: {
         sessionId: string;
     }) => Promise<CandidateProvisionalSessionRecord | null>;
+    resolveEngagementSummary?: (input: {
+        sessionId: string;
+    }) => Promise<CandidateEngagementSessionSummary | null>;
+    engagementReportingEnabled?: boolean;
+    engagementInspectorEnabled?: boolean;
 };
 
 export async function renderCandidateSessionPage({
@@ -60,6 +73,9 @@ export async function renderCandidateSessionPage({
     const parsedSessionId = parseSessionId(sessionId);
     const initialSession = dependencies.resolveDurableSession
         ? await dependencies.resolveDurableSession({ sessionId: parsedSessionId })
+        : null;
+    const initialEngagementSummary = initialSession && dependencies.resolveEngagementSummary
+        ? await dependencies.resolveEngagementSummary({ sessionId: parsedSessionId })
         : null;
     const sessionContext = createSharedSessionContext({
         sessionId: parsedSessionId,
@@ -80,8 +96,13 @@ export async function renderCandidateSessionPage({
             dashboardHref={completionTarget.href}
             initialSession={initialSession}
             entryTransitionRequested={readSingleSearchParam(resolvedSearchParams?.entry) === "1"}
+            visitPace={readSingleSearchParam(resolvedSearchParams?.pace) === "one" ? "one" : "setup"}
+            focusQuestionKey={readSingleSearchParam(resolvedSearchParams?.question)}
             questionAudioEnabled={isSessionQuestionAudioRuntimeAvailable(process.env)}
             voiceAnswerEnabled={isVoiceTranscriptionRuntimeAvailable(process.env)}
+            engagementReportingEnabled={dependencies.engagementReportingEnabled === true}
+            engagementInspectorEnabled={dependencies.engagementInspectorEnabled === true}
+            initialEngagementSummary={initialEngagementSummary}
         />
     );
 }
@@ -93,22 +114,28 @@ function readSingleSearchParam(value: string | string[] | undefined) {
 function createDefaultCandidateSessionPageDependencies(
     authorizedCandidateProfileId?: string,
 ): CandidateSessionPageDependencies {
+    const engagementReportingEnabled = isCandidateEngagementReportingEnabled(process.env);
+    const engagementInspectorEnabled = isCandidateEngagementInspectorEnabled(process.env);
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     if (!databaseUrl) {
-        return {};
+        return { engagementReportingEnabled: false, engagementInspectorEnabled };
     }
 
     const queryClient = createLazyPostgresQueryClient(databaseUrl);
     const practiceSessionRepository = createCandidatePracticeSessionRepository(queryClient);
     const answerHistoryRepository = createCandidateAnswerHistoryRepository(queryClient);
+    const engagementRepository = createCandidateEngagementRepository(queryClient);
     const answerAnalysisRuntimeAvailable = isCandidateAnswerAnalysisRuntimeAvailable(process.env);
+    const resolveCandidateProfileId = async () => authorizedCandidateProfileId
+        ?? (await resolveCandidateSessionIdentityFromCurrentRequest(queryClient))?.candidateProfileId
+        ?? null;
 
     return {
+        engagementReportingEnabled,
+        engagementInspectorEnabled,
         async resolveDurableSession({ sessionId }) {
             try {
-                const candidateProfileId = authorizedCandidateProfileId
-                    ?? (await resolveCandidateSessionIdentityFromCurrentRequest(queryClient))
-                        ?.candidateProfileId;
+                const candidateProfileId = await resolveCandidateProfileId();
                 if (!candidateProfileId) {
                     return null;
                 }
@@ -131,6 +158,19 @@ function createDefaultCandidateSessionPageDependencies(
                 return null;
             }
         },
+        async resolveEngagementSummary({ sessionId }) {
+            if (!engagementReportingEnabled) return null;
+            try {
+                const candidateProfileId = await resolveCandidateProfileId();
+                if (!candidateProfileId) return null;
+                return engagementRepository.getSessionSummary({
+                    candidatePracticeSessionId: sessionId,
+                    candidateProfileId,
+                });
+            } catch {
+                return null;
+            }
+        },
     };
 }
 
@@ -146,7 +186,7 @@ async function resolveCandidateSessionIdentityFromCurrentRequest(
 }
 
 type CandidateSessionQueryClient = {
-    query: (sql: string, values: unknown[]) => Promise<{
+    query: (sql: string, values?: unknown[]) => Promise<{
         rows: Array<Record<string, unknown>>;
     }>;
 };

@@ -378,17 +378,17 @@ export const feedbackCompositionOutputSchema = z.object({
         ]),
     }).strict(),
     candidateFeedback: z.object({
-        acknowledgement: z.string().trim().min(1).max(220),
-        primaryStrength: z.string().trim().min(1).max(280).nullable(),
-        biggestUpgrade: z.string().trim().min(1).max(280).nullable(),
-        redoPrompt: z.string().trim().min(1).max(320).nullable(),
+        acknowledgement: z.string().trim().min(1),
+        primaryStrength: z.string().trim().min(1).nullable(),
+        biggestUpgrade: z.string().trim().min(1).nullable(),
+        redoPrompt: z.string().trim().min(1).nullable(),
         patternSuggestion: z.object({
-            patternName: z.string().trim().min(1).max(100),
-            steps: z.array(z.string().trim().min(1).max(120)).min(2).max(5),
+            patternName: z.string().trim().min(1),
+            steps: z.array(z.string().trim().min(1)).min(2).max(5),
         }).strict().nullable(),
         deliveryNote: z.object({
             status: z.literal("light_note"),
-            message: z.string().trim().min(1).max(220),
+            message: z.string().trim().min(1),
         }).strict().nullable(),
     }).strict(),
     claimEvidence: z.object({
@@ -401,17 +401,17 @@ export const candidateSafeFeedbackProjectionSchema = z.object({
     status: z.literal("candidate_safe_feedback"),
     schemaVersion: z.literal(1),
     inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
-    acknowledgement: z.string().trim().min(1).max(220),
-    primaryStrength: z.string().trim().min(1).max(280).nullable(),
-    biggestUpgrade: z.string().trim().min(1).max(280).nullable(),
-    redoPrompt: z.string().trim().min(1).max(320).nullable(),
+    acknowledgement: z.string().trim().min(1),
+    primaryStrength: z.string().trim().min(1).nullable(),
+    biggestUpgrade: z.string().trim().min(1).nullable(),
+    redoPrompt: z.string().trim().min(1).nullable(),
     patternSuggestion: z.object({
-        patternName: z.string().trim().min(1).max(100),
-        steps: z.array(z.string().trim().min(1).max(120)).min(2).max(5),
+        patternName: z.string().trim().min(1),
+        steps: z.array(z.string().trim().min(1)).min(2).max(5),
     }).strict().nullable(),
     deliveryNote: z.object({
         status: z.literal("light_note"),
-        message: z.string().trim().min(1).max(220),
+        message: z.string().trim().min(1),
     }).strict().nullable(),
 }).strict();
 

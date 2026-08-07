@@ -8,6 +8,10 @@ import {
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import type { CandidateAnswerAttemptRecord } from "@/features/candidate-session-v2/candidate-answer-history";
 import {
+    countCandidateUnansweredQuestions,
+    resolveCandidateCurrentUnansweredQuestionIndex,
+} from "@/features/candidate-session-v2/candidate-session-question-resolution";
+import {
     createCandidateBaselineAwarePracticeSessions,
     type CandidatePracticePlanBaselineRecord,
 } from "@/features/candidate-setup-v2/candidate-practice-plan-baseline-repository";
@@ -16,6 +20,7 @@ import {
     type CandidateCoachPlanReference,
 } from "./candidate-coach-plan-reference";
 import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
+import { isCandidateCoachUpdateRequestStale } from "./candidate-coach-update-lifecycle";
 import {
     createCandidateCoachUpdateDetail,
     createCandidateFocusedPracticeHref,
@@ -28,6 +33,7 @@ import {
 import {
     createCandidateQuestionPreparednessProgress,
     type CandidateQuestionPreparednessAcceptedRun,
+    type CandidateQuestionPreparednessItem,
     type CandidateQuestionPreparednessProgress,
 } from "./candidate-question-preparedness-progress";
 
@@ -95,8 +101,12 @@ export type CandidateDashboardActiveRound = {
     targetRole: string;
     sessionStatus: "planned" | "in_progress";
     href: string;
+    oneQuestionHref?: string;
     questionCount: number;
     answeredCount: number;
+    answeredQuestionKeys?: string[];
+    answeredQuestionNumbers?: number[];
+    remainingQuestionCount?: number;
     currentQuestionNumber: number;
     progressLabel: string;
 };
@@ -128,6 +138,7 @@ export type CandidateDashboardCoachUpdateState =
     | {
         status: "candidate_coach_update_unavailable";
         candidatePracticeSessionId: string;
+        sourceQuestionKey?: string;
         reason: "generation_failed" | "generation_rejected" | "artifact_missing";
       };
 
@@ -194,6 +205,7 @@ export function createCandidateDashboardV2ReadModel({
     practicePlanBaselines = [],
     answerAttempts = [],
     acceptedEvaluationRuns = [],
+    now = new Date(),
 }: {
     candidateProfileId: string;
     practiceSessions: CandidatePracticeSessionRecord[];
@@ -204,6 +216,7 @@ export function createCandidateDashboardV2ReadModel({
     practicePlanBaselines?: CandidatePracticePlanBaselineRecord[];
     answerAttempts?: CandidateAnswerAttemptRecord[] | null;
     acceptedEvaluationRuns?: CandidateQuestionPreparednessAcceptedRun[] | null;
+    now?: Date;
 }): CandidateDashboardV2ReadModel {
     const candidateSessions = practiceSessions.filter((session) => session.candidateProfileId === candidateProfileId);
     const selectedContextKey = selectTargetInterviewContextKey({
@@ -226,29 +239,29 @@ export function createCandidateDashboardV2ReadModel({
         .map(createCandidateCompletedRoundReadModels)
         .filter((model): model is CandidateCompletedRoundReadModels => Boolean(model))
         .sort((left, right) => right.round.completedAt.localeCompare(left.round.completedAt));
-    const latestPracticeNext = completedRounds[0]?.practiceNext ?? createFirstPracticeNext();
+    const roundPracticeNext = completedRounds[0]?.practiceNext ?? createFirstPracticeNext();
     const attemptRollup = createAttemptRollup(scopedCandidateSessions);
     const questionEvidence = createQuestionEvidenceRollup(scopedCandidateSessions);
-    const latestCompletedRound = completedRounds[0] ?? null;
-    const latestCoachUpdateArtifact = latestCompletedRound
-        ? selectLatestCoachUpdateArtifact({
-            artifacts: coachUpdateArtifacts,
-            candidateProfileId,
-            roleProfileId: selectedRoleProfileIdFromKey(selectedContextKey),
-            sourceCandidatePracticeSessionId: latestCompletedRound.round.candidatePracticeSessionId,
-        })
-        : null;
-    const latestCoachUpdate = createDashboardCoachUpdateFromArtifact(latestCoachUpdateArtifact, latestCompletedRound);
+    const resolvedSelectedRoleProfileId = selectedRoleProfileIdFromKey(selectedContextKey);
+    const latestCoachUpdateArtifact = selectLatestCoachUpdateArtifact({
+        artifacts: coachUpdateArtifacts,
+        candidateProfileId,
+        roleProfileId: resolvedSelectedRoleProfileId,
+    });
     const latestCoachUpdateSourceSession = latestCoachUpdateArtifact
         ? scopedCandidateSessions.find((session) => (
             session.candidatePracticeSessionId === latestCoachUpdateArtifact.sourceCandidatePracticeSessionId
         )) ?? null
         : null;
-    const coachUpdateDetail = createCandidateCoachUpdateDetail(
+    const latestCoachUpdate = createDashboardCoachUpdateFromArtifact(
         latestCoachUpdateArtifact,
         latestCoachUpdateSourceSession,
     );
-    const resolvedSelectedRoleProfileId = selectedRoleProfileIdFromKey(selectedContextKey);
+    const coachUpdateDetail = createCandidateCoachUpdateDetail(
+        latestCoachUpdateArtifact,
+        latestCoachUpdateSourceSession,
+        scopedCandidateSessions,
+    );
     const practicePlanBaseline = practicePlanBaselines.find((baseline) => (
         baseline.candidateProfileId === candidateProfileId
         && baseline.roleProfileId === resolvedSelectedRoleProfileId
@@ -272,6 +285,13 @@ export function createCandidateDashboardV2ReadModel({
             acceptedRuns: acceptedEvaluationRuns,
         })
         : null;
+    const practiceDirection = createPracticeDirection({
+        activeSession,
+        latestCompletedRound: completedRounds[0] ?? null,
+        practiceNext: roundPracticeNext,
+        questionPreparedness,
+    });
+    const practiceNext = alignPracticeNextWithDirection(roundPracticeNext, practiceDirection);
 
     return {
         status: "candidate_dashboard_v2_read_model",
@@ -299,22 +319,21 @@ export function createCandidateDashboardV2ReadModel({
         completedRounds,
         latestCoachUpdate,
         coachUpdateState: createCoachUpdateState({
-            latestCompletedRound,
             latestArtifact: latestCoachUpdateArtifact,
             detail: coachUpdateDetail,
+            sourceSession: latestCoachUpdateSourceSession,
+            hasSubmittedPractice: questionEvidence.answeredQuestionCount > 0,
+            fallbackSession: activeSession ?? scopedCandidateSessions[0] ?? null,
+            now,
         }),
         coachUpdateDetail,
         coachingLoop: createCoachingLoop({
             latestCoachUpdate,
-            practiceNext: latestPracticeNext,
+            practiceNext,
         }),
         postRoundReviews: completedRounds.map((round) => round.postRoundReview),
-        practiceNext: latestPracticeNext,
-        practiceDirection: createPracticeDirection({
-            activeSession,
-            latestCompletedRound: completedRounds[0] ?? null,
-            practiceNext: latestPracticeNext,
-        }),
+        practiceNext,
+        practiceDirection,
         coachPlan,
         questionPreparedness,
     };
@@ -324,12 +343,10 @@ function selectLatestCoachUpdateArtifact({
     artifacts,
     candidateProfileId,
     roleProfileId,
-    sourceCandidatePracticeSessionId,
 }: {
     artifacts: CandidateCoachUpdateArtifactRecord[];
     candidateProfileId: string;
     roleProfileId: string | null;
-    sourceCandidatePracticeSessionId: string;
 }) {
     if (!roleProfileId) {
         return null;
@@ -339,28 +356,40 @@ function selectLatestCoachUpdateArtifact({
         .filter((artifact) => (
             artifact.candidateProfileId === candidateProfileId
             && artifact.roleProfileId === roleProfileId
-            && artifact.sourceCandidatePracticeSessionId === sourceCandidatePracticeSessionId
         ))
-        .sort((left, right) => (
-            right.generationAttempt - left.generationAttempt
-            || right.updatedAt.localeCompare(left.updatedAt)
-        ))[0] ?? null;
+        .sort((left, right) => {
+            const sameCheckpoint = left.sourceCandidatePracticeSessionId === right.sourceCandidatePracticeSessionId
+                && (left.sourceQuestionKey ?? null) === (right.sourceQuestionKey ?? null);
+            return (sameCheckpoint ? right.generationAttempt - left.generationAttempt : 0)
+                || (right.completedAt ?? right.requestedAt).localeCompare(left.completedAt ?? left.requestedAt)
+                || right.updatedAt.localeCompare(left.updatedAt);
+        })[0] ?? null;
 }
 
 function createCoachUpdateState({
-    latestCompletedRound,
     latestArtifact,
     detail,
+    sourceSession,
+    hasSubmittedPractice,
+    fallbackSession,
+    now,
 }: {
-    latestCompletedRound: CandidateCompletedRoundReadModels | null;
     latestArtifact: CandidateCoachUpdateArtifactRecord | null;
     detail: CandidateCoachUpdateDetail | null;
+    sourceSession: CandidatePracticeSessionRecord | null;
+    hasSubmittedPractice: boolean;
+    fallbackSession: CandidatePracticeSessionRecord | null;
+    now: Date;
 }): CandidateDashboardCoachUpdateState {
-    if (!latestCompletedRound) {
+    if (!hasSubmittedPractice) {
         return { status: "candidate_coach_update_awaiting_practice" };
     }
 
-    const candidatePracticeSessionId = latestCompletedRound.round.candidatePracticeSessionId;
+    const candidatePracticeSessionId = sourceSession?.candidatePracticeSessionId
+        ?? fallbackSession?.candidatePracticeSessionId;
+    if (!candidatePracticeSessionId) {
+        return { status: "candidate_coach_update_awaiting_practice" };
+    }
     if (!latestArtifact) {
         return {
             status: "candidate_coach_update_unavailable",
@@ -370,6 +399,18 @@ function createCoachUpdateState({
     }
 
     if (latestArtifact.lifecycleState === "requested") {
+        if (isCandidateCoachUpdateRequestStale({
+            requestedAt: latestArtifact.requestedAt,
+            now,
+        })) {
+            return {
+                status: "candidate_coach_update_unavailable",
+                candidatePracticeSessionId,
+                ...(latestArtifact.sourceQuestionKey ? { sourceQuestionKey: latestArtifact.sourceQuestionKey } : {}),
+                reason: "generation_failed",
+            };
+        }
+
         return {
             status: "candidate_coach_update_pending",
             candidatePracticeSessionId,
@@ -381,6 +422,7 @@ function createCoachUpdateState({
         return {
             status: "candidate_coach_update_unavailable",
             candidatePracticeSessionId,
+            ...(latestArtifact.sourceQuestionKey ? { sourceQuestionKey: latestArtifact.sourceQuestionKey } : {}),
             reason: latestArtifact.lifecycleState === "rejected" ? "generation_rejected" : "generation_failed",
         };
     }
@@ -389,6 +431,7 @@ function createCoachUpdateState({
         return {
             status: "candidate_coach_update_unavailable",
             candidatePracticeSessionId,
+            ...(latestArtifact.sourceQuestionKey ? { sourceQuestionKey: latestArtifact.sourceQuestionKey } : {}),
             reason: "generation_rejected",
         };
     }
@@ -399,7 +442,9 @@ function createCoachUpdateState({
         presentationKey: detail.presentationKey,
         completedAt: latestArtifact.completedAt,
         answeredCount: detail.answeredCount,
-        questionCount: latestCompletedRound.round.questionCount,
+        questionCount: sourceSession?.questionWordingSnapshot?.questions.length
+            ?? sourceSession?.questionPlanSnapshot.questionCount
+            ?? detail.questionCount,
     };
 }
 
@@ -410,10 +455,10 @@ function normalizeCandidateIdentityText(value: string | null | undefined) {
 
 function createDashboardCoachUpdateFromArtifact(
     artifact: CandidateCoachUpdateArtifactRecord | null,
-    latestCompletedRound: CandidateCompletedRoundReadModels | null,
+    sourceSession: CandidatePracticeSessionRecord | null,
 ): CandidateDashboardCoachUpdate | null {
     const content = artifact?.candidateSafeContent;
-    if (!artifact || !content || !artifact.completedAt || !latestCompletedRound) return null;
+    if (!artifact || !content || !artifact.completedAt || !sourceSession) return null;
     const firstQuestion = content.questions[0];
     return {
         status: "candidate_dashboard_coach_update_ready",
@@ -423,7 +468,8 @@ function createDashboardCoachUpdateFromArtifact(
         href: "#coach-update-detail",
         completedAt: artifact.completedAt,
         answeredCount: content.questions.length,
-        questionCount: latestCompletedRound.round.questionCount,
+        questionCount: sourceSession.questionWordingSnapshot?.questions.length
+            ?? sourceSession.questionPlanSnapshot.questionCount,
         ...(firstQuestion ? {
             coachingPreview: {
                 questionKey: firstQuestion.questionKey,
@@ -689,20 +735,37 @@ function createActiveRound(activeSession: CandidatePracticeSessionRecord | null)
     const questionCount = activeSession.questionWordingSnapshot?.status === "questions_worded"
         ? activeSession.questionWordingSnapshot.questions.length
         : activeSession.questionPlanSnapshot.questionCount;
-    const answeredCount = Object.keys(activeSession.answerSubmissions).length;
-    const currentQuestionNumber = Math.min(
-        Math.max(activeSession.progress.currentQuestionIndex + 1, 1),
-        Math.max(questionCount, 1),
-    );
+    const questions = activeSession.questionWordingSnapshot?.questions
+        ?? activeSession.questionPlanSnapshot.slots.map((slot) => ({ slotId: slot.id, index: slot.index }));
+    const currentQuestionIndex = resolveCandidateCurrentUnansweredQuestionIndex({
+        questions,
+        answerSubmissions: activeSession.answerSubmissions,
+        preferredQuestionIndex: activeSession.progress.currentQuestionIndex,
+    });
+    const currentQuestionNumber = (currentQuestionIndex ?? Math.max(questionCount - 1, 0)) + 1;
+    const remainingQuestionCount = countCandidateUnansweredQuestions({
+        questions,
+        answerSubmissions: activeSession.answerSubmissions,
+    });
+    const answeredCount = questionCount - remainingQuestionCount;
+    const href = `/candidate/session/${activeSession.candidatePracticeSessionId}`;
 
     return {
         status: "candidate_dashboard_active_round",
         candidatePracticeSessionId: activeSession.candidatePracticeSessionId,
         targetRole: activeSession.setupSnapshot.targetRole,
         sessionStatus: activeSession.status,
-        href: `/candidate/session/${activeSession.candidatePracticeSessionId}`,
+        href,
+        oneQuestionHref: `${href}?pace=one`,
         questionCount,
         answeredCount,
+        answeredQuestionKeys: questions.flatMap((question) => (
+            activeSession.answerSubmissions[question.slotId] ? [question.slotId] : []
+        )),
+        answeredQuestionNumbers: questions.flatMap((question, index) => (
+            activeSession.answerSubmissions[question.slotId] ? [index + 1] : []
+        )),
+        remainingQuestionCount,
         currentQuestionNumber,
         progressLabel: `${answeredCount} of ${questionCount} answered`,
     };
@@ -761,17 +824,19 @@ function createPracticeDirection({
     activeSession,
     latestCompletedRound,
     practiceNext,
+    questionPreparedness,
 }: {
     activeSession: CandidatePracticeSessionRecord | null;
     latestCompletedRound: CandidateCompletedRoundReadModels | null;
     practiceNext: CandidatePracticeNext;
+    questionPreparedness: CandidateQuestionPreparednessProgress | null;
 }): CandidateDashboardPracticeDirection {
     const planProgress = createPlanProgress({
         activeSession,
         latestCompletedRound,
         practiceNext,
     });
-    const coachGuidedFocus = createCoachGuidedFocus(latestCompletedRound);
+    const coachGuidedFocus = createCoachGuidedFocus(latestCompletedRound, questionPreparedness);
 
     return {
         status: "candidate_dashboard_practice_direction_ready",
@@ -853,13 +918,24 @@ function createPlanProgress({
 
 function createCoachGuidedFocus(
     latestCompletedRound: CandidateCompletedRoundReadModels | null,
+    questionPreparedness: CandidateQuestionPreparednessProgress | null,
 ): CandidateDashboardCoachGuidedFocusIndicator | null {
     if (!latestCompletedRound) {
         return null;
     }
 
-    const firstCoachedQuestion = latestCompletedRound.postRoundReview.questions.find((question) => question.coaching);
-    if (!firstCoachedQuestion?.coaching) {
+    const coachedQuestions = latestCompletedRound.postRoundReview.questions.flatMap((question, index) => (
+        question.coaching ? [{ question, index }] : []
+    ));
+    const selected = questionPreparedness
+        ? [...coachedQuestions].sort((left, right) => (
+            getPracticeFocusPriority(findPreparednessQuestion(questionPreparedness, left.question))
+            - getPracticeFocusPriority(findPreparednessQuestion(questionPreparedness, right.question))
+            || left.index - right.index
+        ))[0]
+        : coachedQuestions[0];
+    const selectedQuestion = selected?.question;
+    if (!selectedQuestion?.coaching) {
         return null;
     }
 
@@ -867,19 +943,62 @@ function createCoachGuidedFocus(
         status: "candidate_dashboard_coach_guided_focus_ready",
         label: "Practice from feedback",
         source: "coach_feedback",
-        title: firstCoachedQuestion.coaching.recommendedMove,
+        title: selectedQuestion.coaching.recommendedMove,
         body: "Use the latest coach feedback to choose one focused answer pattern to practice next.",
         href: createCandidateFocusedPracticeHref({
             kind: "practice_from_feedback",
             candidatePracticeSessionId: latestCompletedRound.round.candidatePracticeSessionId,
-            questionKey: firstCoachedQuestion.questionKey,
+            questionKey: selectedQuestion.questionKey,
         }),
         candidatePracticeSessionId: latestCompletedRound.round.candidatePracticeSessionId,
-        sourceQuestionKey: firstCoachedQuestion.questionKey,
+        sourceQuestionKey: selectedQuestion.questionKey,
         questionKeys: [
-            firstCoachedQuestion.attemptContext?.rootSourceQuestionKey
-                ?? firstCoachedQuestion.attemptContext?.sourceQuestionKey
-                ?? firstCoachedQuestion.questionKey,
+            getCanonicalQuestionKey(selectedQuestion),
         ],
+    };
+}
+
+function findPreparednessQuestion(
+    progress: CandidateQuestionPreparednessProgress,
+    question: CandidateCompletedRoundReadModels["postRoundReview"]["questions"][number],
+) {
+    const canonicalQuestionKey = getCanonicalQuestionKey(question);
+    return progress.questions.find((item) => item.questionKey === canonicalQuestionKey) ?? null;
+}
+
+function getCanonicalQuestionKey(
+    question: CandidateCompletedRoundReadModels["postRoundReview"]["questions"][number],
+) {
+    return question.attemptContext?.rootSourceQuestionKey
+        ?? question.attemptContext?.sourceQuestionKey
+        ?? question.questionKey;
+}
+
+function getPracticeFocusPriority(question: CandidateQuestionPreparednessItem | null) {
+    const latest = question?.latestAttempt?.result;
+    if (latest?.status === "incomplete") return 0;
+    if (latest?.status === "rated") {
+        if (latest.band === "emerging") return 1;
+        if (latest.band === "clear") return 2;
+        return 3;
+    }
+    return 4;
+}
+
+function alignPracticeNextWithDirection(
+    practiceNext: CandidatePracticeNext,
+    direction: CandidateDashboardPracticeDirection,
+): CandidatePracticeNext {
+    const focus = direction.coachGuidedFocus;
+    if (practiceNext.source !== "coaching_focus" || !focus) {
+        return practiceNext;
+    }
+
+    return {
+        ...practiceNext,
+        label: focus.title,
+        reason: focus.body,
+        href: focus.href,
+        questionKeys: focus.questionKeys,
     };
 }

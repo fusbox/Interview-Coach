@@ -84,6 +84,8 @@ export type CandidateSessionCompleteRouteDependencies = {
     ensureCoachUpdateArtifact?: (input: {
         candidateProfileId: string;
         sourceCandidatePracticeSessionId: string;
+        sourceQuestionKey?: string;
+        settledAt?: string;
     }) => Promise<CandidateCoachUpdateGenerationResult>;
     recordCompletedRoundRepairDiagnostic?: (event: CandidateCompletedRoundRepairDiagnostic) => void | Promise<void>;
 };
@@ -121,7 +123,6 @@ export async function handleCandidateSessionCompleteRequest({
     resolveCandidateSessionIdentity,
     practiceSessionRepository,
     repairCompletedRoundAnalysis,
-    ensureCoachUpdateArtifact,
     recordCompletedRoundRepairDiagnostic,
 }: CandidateSessionCompleteRouteDependencies & {
     request: Request;
@@ -146,6 +147,17 @@ export async function handleCandidateSessionCompleteRequest({
     if (!existingCompletion && !session.questionWordingSnapshot?.questions?.length) {
         return Response.json({ error: "Question wording is required before completion." }, { status: 409 });
     }
+    if (
+        !existingCompletion
+        && session.questionWordingSnapshot!.questions.some((question) => (
+            !session.answerSubmissions?.[question.slotId]
+        ))
+    ) {
+        return Response.json({
+            code: "CANONICAL_PLAN_INCOMPLETE",
+            error: "Every question in the canonical practice plan needs an answer before completion.",
+        }, { status: 409 });
+    }
 
     const completionSnapshot = existingCompletion ?? createCandidateLedSessionCompletion({
         facts: createSessionRuntimeFacts({
@@ -153,7 +165,7 @@ export async function handleCandidateSessionCompleteRequest({
             sessionId,
             targetRole: session.setupSnapshot?.targetRole ?? "Practice session",
             interviewStage: session.setupSnapshot?.interviewStage ?? "unknown",
-            questionCount: session.setupSnapshot?.questionCount ?? session.questionWordingSnapshot!.questions.length,
+            questionCount: session.questionWordingSnapshot!.questions.length,
             currentQuestionIndex: session.progress?.currentQuestionIndex ?? 0,
             questions: session.questionWordingSnapshot!.questions.map((question) => {
                 const answerSubmission = session.answerSubmissions?.[question.slotId];
@@ -211,16 +223,8 @@ export async function handleCandidateSessionCompleteRequest({
             sourceCandidatePracticeSessionId: sessionId,
         }).catch(() => createCandidateCompletedRoundAnalysisRepairUnavailableResult())
         : null;
-    const coachUpdate = ensureCoachUpdateArtifact
-        && (!coachingRepair || coachingRepair.allAnsweredOccurrencesAccepted)
-        ? await ensureCoachUpdateArtifact({
-            candidateProfileId: identity.candidateProfileId,
-            sourceCandidatePracticeSessionId: sessionId,
-        }).catch(() => ({
-            status: "coach_update_unavailable" as const,
-            reason: "generation_failed" as const,
-        }))
-        : null;
+    // Coach Updates are claimed at the settled-question feedback boundary. Session completion
+    // remains responsible only for terminal session facts and bounded analysis repair.
 
     if (coachingRepair && recordCompletedRoundRepairDiagnostic) {
         try {
@@ -234,7 +238,7 @@ export async function handleCandidateSessionCompleteRequest({
                 retryableCount: coachingRepair.retryableCount,
                 unavailableCount: coachingRepair.unavailableCount,
                 invalidLineageCount: coachingRepair.invalidLineageCount,
-                coachUpdateStatus: coachUpdate?.status ?? "not_attempted",
+                coachUpdateStatus: "not_attempted",
             });
         } catch {
             // Diagnostic delivery cannot change completion or repair behavior.
@@ -246,7 +250,6 @@ export async function handleCandidateSessionCompleteRequest({
         completionSnapshot: completed.completionSnapshot,
         nextRoute: completed.completionSnapshot.nextRoute,
         ...(coachingRepair ? { coachingRepair } : {}),
-        ...(coachUpdate ? { coachUpdateStatus: coachUpdate.status } : {}),
     }, {
         headers: {
             "Cache-Control": "no-store",
@@ -346,9 +349,13 @@ export function createDefaultCandidateSessionCompleteDependencies(): Pick<
             ensureCoachUpdateArtifact: async ({
                 candidateProfileId,
                 sourceCandidatePracticeSessionId,
+                sourceQuestionKey,
+                settledAt,
             }: {
                 candidateProfileId: string;
                 sourceCandidatePracticeSessionId: string;
+                sourceQuestionKey?: string;
+                settledAt?: string;
             }) => ensureCandidateCoachUpdateArtifact({
                 candidateProfileId,
                 sourceCandidatePracticeSessionId,
@@ -369,6 +376,8 @@ export function createDefaultCandidateSessionCompleteDependencies(): Pick<
                     if (!sourceSession) return null;
                     return createCandidateCoachUpdateSynthesisInput({
                         sourceSession,
+                        sourceQuestionKey,
+                        settledAt,
                         sessionEvidence: sessions.map((candidateSession) => ({
                             session: candidateSession,
                             answerAttempts: attempts.filter((attempt) => (

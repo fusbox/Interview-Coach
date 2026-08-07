@@ -11,7 +11,7 @@ import type {
 import { createCandidateAnswerCoachingFacts } from "@/features/candidate-session-v2/candidate-coaching-facts";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import { resolveCandidateFollowUpPlanQuestionNumber } from "@/features/candidate-practice-v2/candidate-follow-up-session-creation";
-import { parseAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
+import { parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 import { findProhibitedCandidateJudgments } from "@/features/evaluation-v2/candidate-generated-language-policy";
 
 import {
@@ -42,6 +42,9 @@ export type CandidateCoachUpdateArtifactRecord = {
     candidateProfileId: string;
     roleProfileId: string;
     sourceCandidatePracticeSessionId: string;
+    sourceQuestionKey?: string | null;
+    sourceAnswerAttemptId?: string | null;
+    sourceAcceptedEvaluationRunId?: string | null;
     sourceCompletionFingerprint: string;
     sourceAnswerAttemptIds: string[];
     acceptedEvaluationRunIds: string[];
@@ -146,18 +149,39 @@ export type CandidateCoachUpdateSynthesisQuestion = {
 export function createCandidateCoachUpdateSynthesisInput({
     sourceSession,
     sessionEvidence,
+    sourceQuestionKey,
+    settledAt,
 }: {
     sourceSession: CandidatePracticeSessionRecord;
     sessionEvidence: CandidateCoachUpdateSessionEvidence[];
+    sourceQuestionKey?: string;
+    settledAt?: string;
 }): CandidateCoachUpdateSynthesisInput | null {
     const completion = sourceSession.completionSnapshot;
     const roleProfileId = sourceSession.roleProfileId;
     if (
-        sourceSession.status !== "completed"
-        || !completion
-        || !roleProfileId
+        !roleProfileId
         || !sourceSession.questionWordingSnapshot
-        || completion.answeredQuestionKeys.length === 0
+        || (
+            sourceQuestionKey
+                ? !sourceSession.questionWordingSnapshot.questions.some((question) => question.slotId === sourceQuestionKey)
+                : sourceSession.status !== "completed" || !completion || completion.answeredQuestionKeys.length === 0
+        )
+    ) {
+        return null;
+    }
+    const settledFeedbackAction = sourceQuestionKey
+        ? sourceSession.feedbackActionEvents[sourceQuestionKey]
+        : null;
+    if (
+        sourceQuestionKey
+        && (
+            !settledFeedbackAction
+            || (
+                settledFeedbackAction.transition !== "advance_to_next_question"
+                && settledFeedbackAction.transition !== "finish_session"
+            )
+        )
     ) {
         return null;
     }
@@ -170,7 +194,10 @@ export function createCandidateCoachUpdateSynthesisInput({
         return null;
     }
 
-    const answeredQuestionKeys = new Set(completion.answeredQuestionKeys);
+    const checkpointQuestionKeys = sourceQuestionKey
+        ? [sourceQuestionKey]
+        : completion!.answeredQuestionKeys;
+    const answeredQuestionKeys = new Set(checkpointQuestionKeys);
     const questions: CandidateCoachUpdateSynthesisQuestion[] = [];
     for (const question of sourceSession.questionWordingSnapshot.questions) {
         if (!answeredQuestionKeys.has(question.slotId)) {
@@ -183,6 +210,15 @@ export function createCandidateCoachUpdateSynthesisInput({
             .filter((attempt) => attempt.questionSlotId === question.slotId)
             .sort((left, right) => right.attemptNumber - left.attemptNumber)[0];
         if (!submission || !answerAttemptId || latestAttempt?.candidateAnswerAttemptId !== answerAttemptId) {
+            return null;
+        }
+        if (
+            sourceQuestionKey
+            && (
+                settledFeedbackAction?.answer.answerAttemptId !== latestAttempt.candidateAnswerAttemptId
+                || settledFeedbackAction.answer.attemptNumber !== latestAttempt.attemptNumber
+            )
+        ) {
             return null;
         }
 
@@ -243,15 +279,16 @@ export function createCandidateCoachUpdateSynthesisInput({
         });
     }
 
-    if (questions.length !== completion.answeredQuestionKeys.length) {
+    if (questions.length !== checkpointQuestionKeys.length) {
         return null;
     }
 
     const sourceCompletionFingerprint = hashJson({
+        checkpointKind: sourceQuestionKey ? "settled_question" : "completed_session",
         candidateProfileId: sourceSession.candidateProfileId,
         roleProfileId,
         sourceCandidatePracticeSessionId: sourceSession.candidatePracticeSessionId,
-        completion,
+        ...(sourceQuestionKey ? { sourceQuestionKey } : { completion }),
         questions: questions.map((question) => ({
             questionKey: question.questionKey,
             questionText: question.questionText,
@@ -282,9 +319,12 @@ export function createCandidateCoachUpdateSynthesisInput({
         roleProfileId,
         sourceCandidatePracticeSessionId: sourceSession.candidatePracticeSessionId,
         targetRole: sourceSession.setupSnapshot.targetRole,
-        completedAt: completion.completedAt,
-        questionCount: completion.questionCount,
-        answeredCount: completion.answeredCount,
+        completedAt: settledFeedbackAction?.selectedAt
+            ?? settledAt
+            ?? completion?.completedAt
+            ?? questions[0].answerAttempt.submittedAt,
+        questionCount: sourceSession.questionWordingSnapshot.questions.length,
+        answeredCount: questions.length,
         sourceCompletionFingerprint,
         synthesisInputFingerprint,
         questions,
@@ -398,6 +438,11 @@ export function normalizeCandidateCoachUpdateArtifactRecord(value: unknown): Can
         candidateProfileId: readString(value.candidate_profile_id ?? value.candidateProfileId),
         roleProfileId: readString(value.role_profile_id ?? value.roleProfileId),
         sourceCandidatePracticeSessionId: readString(value.source_candidate_practice_session_id ?? value.sourceCandidatePracticeSessionId),
+        sourceQuestionKey: readNullableString(value.source_question_key ?? value.sourceQuestionKey),
+        sourceAnswerAttemptId: readNullableString(value.source_answer_attempt_id ?? value.sourceAnswerAttemptId),
+        sourceAcceptedEvaluationRunId: readNullableString(
+            value.source_accepted_evaluation_run_id ?? value.sourceAcceptedEvaluationRunId,
+        ),
         sourceCompletionFingerprint: readString(value.source_completion_fingerprint ?? value.sourceCompletionFingerprint),
         sourceAnswerAttemptIds: readStringArray(value.source_answer_attempt_ids_json ?? value.sourceAnswerAttemptIds),
         acceptedEvaluationRunIds: readStringArray(value.accepted_evaluation_run_ids_json ?? value.acceptedEvaluationRunIds),
@@ -494,9 +539,9 @@ function readAcceptedAnalysis(
     evaluationRunId: string,
 ): {
     analysis: CandidateAnswerAnalysisProviderResult;
-    acceptedRun: ReturnType<typeof parseAcceptedEvidenceFirstEvaluatorRun>;
+    acceptedRun: ReturnType<typeof parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun>;
 } | null {
-    const acceptedRun = parseAcceptedEvidenceFirstEvaluatorRun(value);
+    const acceptedRun = parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun(value);
     if (
         acceptedRun
         && acceptedRun.inputFingerprint === inputFingerprint
@@ -584,7 +629,19 @@ function labelForCategory(category: string) {
 }
 
 function readCandidateSafeContent(value: unknown): CandidateCoachUpdateContent | null {
-    return isCandidateCoachUpdateContent(value) && !containsProhibitedGeneratedLanguage(value) ? value : null;
+    if (!isCandidateCoachUpdateContent(value) || containsProhibitedGeneratedLanguage(value)) return null;
+    return {
+        ...value,
+        questions: value.questions.map((question) => ({
+            ...question,
+            transcriptCanvas: question.transcriptCanvas === null
+                ? null
+                : normalizeCandidateTranscriptCanvasProjection(question.transcriptCanvas, {
+                    candidateAnswerAttemptId: question.answer.candidateAnswerAttemptId,
+                    text: question.answer.text,
+                }),
+        })),
+    };
 }
 
 export function parseCandidateCoachUpdateContent(value: unknown): CandidateCoachUpdateContent | null {

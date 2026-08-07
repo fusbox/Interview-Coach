@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 
 import type { CandidateAnswerAnalysisProviderResult } from "@/features/candidate-session-v2/candidate-answer-analysis-adapter";
@@ -17,6 +19,7 @@ import {
     createCandidateCoachUpdateSynthesisInput,
     createFixtureCandidateCoachUpdateContent,
     normalizeCandidateCoachUpdateArtifactRecord,
+    parseCandidateCoachUpdateContent,
     validateCandidateCoachUpdateContent,
     type CandidateCoachUpdateContent,
 } from "./candidate-coach-update-artifact";
@@ -79,7 +82,7 @@ describe("candidate Coach Update artifact input", () => {
         })).toBeNull();
     });
 
-    it("derives Coach Update input from the internal accepted evaluator run without session-hidden facts", async () => {
+    it("derives Coach Update input from a compatible persisted evaluator run without session-hidden facts", async () => {
         const session = createCompletedSession();
         const attempt = createAttempt({
             id: "attempt-1",
@@ -115,10 +118,14 @@ describe("candidate Coach Update artifact input", () => {
                 questionCount: session.setupSnapshot.questionCount,
             },
         }, { evaluationRunId: "run-internal" });
+        const storedAccepted = JSON.parse(JSON.stringify(accepted)) as Record<string, unknown> & {
+            profile: { promptBundleVersion: string };
+        };
+        storedAccepted.profile.promptBundleVersion = "candidate_evidence_first_prompts_v14";
         const run: CandidateAnswerEvaluationRunRecord = {
             ...createRun({ id: "run-internal", attemptId: "attempt-1" }),
             inputFingerprint: accepted.inputFingerprint,
-            result: JSON.parse(JSON.stringify(accepted)) as Record<string, unknown>,
+            result: storedAccepted,
             validation: { disposition: "accepted", inputFingerprint: accepted.inputFingerprint },
         };
 
@@ -296,6 +303,139 @@ describe("candidate Coach Update artifact input", () => {
             ...artifact,
             candidateSafeContent: { ...content, primaryFocus: "Raise your score next time." },
         })).toBeNull();
+    });
+
+    it("normalizes persisted overlapping transcript annotations on read", () => {
+        const session = createCompletedSession();
+        const attempt = createAttempt({
+            id: "attempt-1",
+            attemptNumber: 1,
+            submittedAt: "2026-07-15T12:01:00.000Z",
+        });
+        const input = createCandidateCoachUpdateSynthesisInput({
+            sourceSession: session,
+            sessionEvidence: [{
+                session,
+                answerAttempts: [attempt],
+                evaluationRuns: [createRun({ id: "run-1", attemptId: "attempt-1" })],
+            }],
+        })!;
+        const content = createFixtureCandidateCoachUpdateContent(input);
+        const question = content.questions[0]!;
+        const indicator = {
+            kind: "acknowledgement" as const,
+            label: "Coach noticed",
+            message: "You gave me a direct starting point.",
+        };
+
+        const parsed = parseCandidateCoachUpdateContent({
+            ...content,
+            questions: [{
+                ...question,
+                transcriptCanvas: {
+                    status: "candidate_transcript_canvas_v1",
+                    answerAttemptId: question.answer.candidateAnswerAttemptId,
+                    evaluationRunId: "run-1",
+                    inputFingerprint: "input-attempt-1",
+                    transcriptFingerprint: createHash("sha256").update(question.answer.text).digest("hex"),
+                    annotations: [
+                        {
+                            id: "stored-short",
+                            quote: "Answer",
+                            start: 0,
+                            end: 6,
+                            basis: { kind: "span", spanIds: ["span-short"] },
+                            markerIds: ["direct_answer"],
+                            indicators: [indicator],
+                        },
+                        {
+                            id: "stored-long",
+                            quote: "Answer 1",
+                            start: 0,
+                            end: 8,
+                            basis: { kind: "span", spanIds: ["span-long"] },
+                            markerIds: ["specific_detail"],
+                            indicators: [indicator],
+                        },
+                    ],
+                    wholeAnswerIndicators: [],
+                    primaryGap: null,
+                },
+            }],
+        });
+
+        expect(parsed?.questions[0]?.transcriptCanvas?.annotations).toEqual([
+            expect.objectContaining({
+                quote: "Answer 1",
+                start: 0,
+                end: 8,
+                basis: { kind: "span", spanIds: ["span-short", "span-long"] },
+                markerIds: ["direct_answer", "specific_detail"],
+            }),
+        ]);
+    });
+
+    it("creates a one-question checkpoint from an active canonical session", () => {
+        const completedSession = createCompletedSession();
+        const session: CandidatePracticeSessionRecord = {
+            ...completedSession,
+            status: "in_progress",
+            progress: { status: "live_question", currentQuestionIndex: 1 },
+            feedbackActionEvents: {
+                "slot-1": {
+                    status: "feedback_action_selected",
+                    answer: {
+                        slotId: "slot-1",
+                        questionIndex: 0,
+                        answerAttemptId: "attempt-1",
+                        attemptNumber: 1,
+                        trigger: "initial_submit",
+                    },
+                    stageId: "next_step",
+                    actionKind: "continue_to_next_question",
+                    transition: "advance_to_next_question",
+                    selectedAt: "2026-07-15T12:03:00.000Z",
+                },
+            },
+            completionSnapshot: null,
+        };
+        const attempt = createAttempt({
+            id: "attempt-1",
+            attemptNumber: 1,
+            submittedAt: "2026-07-15T12:01:00.000Z",
+        });
+
+        const input = createCandidateCoachUpdateSynthesisInput({
+            sourceSession: session,
+            sourceQuestionKey: "slot-1",
+            sessionEvidence: [{
+                session,
+                answerAttempts: [attempt],
+                evaluationRuns: [createRun({ id: "run-1", attemptId: "attempt-1" })],
+            }],
+        });
+
+        expect(createCandidateCoachUpdateSynthesisInput({
+            sourceSession: { ...session, feedbackActionEvents: {} },
+            sourceQuestionKey: "slot-1",
+            sessionEvidence: [{
+                session,
+                answerAttempts: [attempt],
+                evaluationRuns: [createRun({ id: "run-1", attemptId: "attempt-1" })],
+            }],
+        })).toBeNull();
+
+        expect(input).toMatchObject({
+            sourceCandidatePracticeSessionId: "session-1",
+            completedAt: "2026-07-15T12:03:00.000Z",
+            questionCount: 2,
+            answeredCount: 1,
+            questions: [{
+                questionKey: "slot-1",
+                answerAttempt: { candidateAnswerAttemptId: "attempt-1" },
+                acceptedEvaluationRun: { candidateAnswerEvaluationRunId: "run-1" },
+            }],
+        });
     });
 });
 

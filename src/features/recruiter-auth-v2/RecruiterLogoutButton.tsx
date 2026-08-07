@@ -1,25 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigationHandoff } from "@/components/ui/use-navigation-handoff";
 
 export function RecruiterLogoutButton({ navigate = replaceDocument }: {
     navigate?: (target: string) => void;
 } = {}) {
-    const [submitting, setSubmitting] = useState(false);
+    const { pending: submitting, claim, release } = useNavigationHandoff();
 
     async function logout() {
-        setSubmitting(true);
+        if (!claim()) return;
         try {
             const response = await fetch("/api/auth/logout", {
                 method: "POST",
                 credentials: "same-origin",
             });
-            if (!response.ok) return;
+            if (!response.ok) throw new Error("Sign out failed.");
             navigate("/login");
-        } finally {
-            setSubmitting(false);
+        } catch {
+            release();
         }
     }
 
@@ -28,11 +28,12 @@ export function RecruiterLogoutButton({ navigate = replaceDocument }: {
             type="button"
             emphasis="secondary"
             density="compact"
-            shape="app"
+            shape="pill"
             onClick={logout}
             disabled={submitting}
+            loading={submitting}
         >
-            {submitting ? <Loader2 className="recruiter-spin" size={16} /> : <LogOut size={16} />}
+            <LogOut size={16} />
             {submitting ? "Signing out" : "Sign out"}
         </Button>
     );

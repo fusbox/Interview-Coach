@@ -24,10 +24,11 @@ it("selects the CTA asset pair without changing coach-avatar semantics", () => {
 });
 
 it("selects the higher-contrast surface asset pair for light coach surfaces", () => {
-    const { container } = render(<CandidateCoachAvatar variant="surface" />);
+    const { container } = render(<CandidateCoachAvatar variant="surface" frame="surface" />);
     const images = container.querySelectorAll("img");
 
     expect(images[0]).toHaveAttribute("src", "/coach-avatar-surface-light.svg");
     expect(images[1]).toHaveAttribute("src", "/coach-avatar-surface-dark.svg");
     expect(container.firstChild).toHaveAttribute("aria-hidden", "true");
+    expect(container.firstChild).toHaveClass("candidate-coach-avatar--surface-frame");
 });

@@ -384,7 +384,7 @@ describe("Google evidence-first evaluator adapter", () => {
         });
     });
 
-    it("bounds provider prose before strict feedback validation", async () => {
+    it("preserves full candidate-facing provider prose through strict feedback validation", async () => {
         const request = createRequest();
         const evaluationCase = createFixtureEvidenceFirstEvaluationCase(request);
         const fixtureRun = await runFixtureEvidenceFirstEvaluator(request);
@@ -414,8 +414,8 @@ describe("Google evidence-first evaluator adapter", () => {
         const feedback = result.value as typeof fixtureRun.accepted.feedback;
 
         expect(feedback.feedbackPlan.centralRead.length).toBeLessThanOrEqual(280);
-        expect(feedback.candidateFeedback.acknowledgement.length).toBeLessThanOrEqual(220);
-        expect(feedback.candidateFeedback.biggestUpgrade?.length).toBeLessThanOrEqual(280);
+        expect(feedback.candidateFeedback.acknowledgement).toBe(longSentence.trim());
+        expect(feedback.candidateFeedback.biggestUpgrade).toBe(longSentence.trim());
         expect(validateFeedbackComposition({ evaluationCase, appraisal, value: feedback })).toMatchObject({
             status: "feedback_accepted",
         });

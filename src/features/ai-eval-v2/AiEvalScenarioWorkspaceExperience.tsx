@@ -18,6 +18,10 @@ import {
     runAiEvalLiveScenariosAction,
     runAiEvalScenariosAction,
 } from "@/app/qa/ai-eval/actions";
+import {
+    PendingServerActionForm,
+    PendingSubmitButton,
+} from "@/components/ui/pending-server-action-form";
 
 import { AiEvalScenarioCaseList } from "./AiEvalScenarioCaseList";
 import type {
@@ -184,16 +188,16 @@ function ScenarioWorkspace({
                     <div className="ai-eval-scenario-toolbar__group">
                         <span className="ai-eval-scenario-toolbar__label">2. Fixture run</span>
                         <div className="ai-eval-scenario-toolbar__actions">
-                            <form id="ai-eval-selected-run" action={runAiEvalScenariosAction}>
+                            <PendingServerActionForm id="ai-eval-selected-run" action={runAiEvalScenariosAction}>
                                 <input type="hidden" name="creationRequestKey" value={randomUUID()} />
                                 <input type="hidden" name="runScope" value="selected" />
-                                <button type="submit" className="button button--secondary">Run selected</button>
-                            </form>
-                            <form action={runAiEvalScenariosAction}>
+                                <PendingSubmitButton className="button button--secondary">Run selected</PendingSubmitButton>
+                            </PendingServerActionForm>
+                            <PendingServerActionForm action={runAiEvalScenariosAction}>
                                 <input type="hidden" name="creationRequestKey" value={randomUUID()} />
                                 <input type="hidden" name="runScope" value="full_baseline" />
-                                <button type="submit" className="button button--secondary">Run all baseline</button>
-                            </form>
+                                <PendingSubmitButton className="button button--secondary">Run all baseline</PendingSubmitButton>
+                            </PendingServerActionForm>
                         </div>
                     </div>
                     <div className="ai-eval-scenario-toolbar__group ai-eval-scenario-toolbar__group--live">
@@ -248,12 +252,12 @@ function ScenarioWorkspace({
                     <div className="ai-eval-scenario-drafts">
                         <header>
                             <h2>Drafts</h2>
-                            <form action={createAiEvalScenarioDraftAction}>
+                            <PendingServerActionForm action={createAiEvalScenarioDraftAction}>
                                 <input type="hidden" name="creationRequestKey" value={randomUUID()} />
-                                <button type="submit" className="icon-button" title="Blank draft" aria-label="Create blank draft">
+                                <PendingSubmitButton className="icon-button" title="Blank draft" aria-label="Create blank draft">
                                     <Plus size={17} />
-                                </button>
-                            </form>
+                                </PendingSubmitButton>
+                            </PendingServerActionForm>
                         </header>
                         {drafts.length ? (
                             <ol>
@@ -287,7 +291,7 @@ function ScenarioEditor({ draft }: { draft: AiEvalScenarioDraft }) {
                 <h2>{draft.scenario.title}</h2>
                 <FileJson size={18} aria-hidden="true" />
             </header>
-            <form action={mutateAiEvalScenarioDraftAction}>
+            <PendingServerActionForm action={mutateAiEvalScenarioDraftAction}>
                 <input type="hidden" name="draftId" value={draft.draftId} />
                 <input type="hidden" name="revision" value={draft.revision} />
                 <label className="sr-only" htmlFor="scenario-json">Scenario JSON</label>
@@ -299,14 +303,14 @@ function ScenarioEditor({ draft }: { draft: AiEvalScenarioDraft }) {
                     required
                 />
                 <div className="ai-eval-scenario-editor__actions">
-                    <button type="submit" name="intent" value="save" className="button button--secondary">
+                    <PendingSubmitButton name="intent" value="save" className="button button--secondary">
                         <Save size={16} />Save
-                    </button>
-                    <button type="submit" name="intent" value="stage" className="button button--primary">
+                    </PendingSubmitButton>
+                    <PendingSubmitButton name="intent" value="stage" className="button button--primary">
                         <CheckCircle2 size={16} />Stage
-                    </button>
+                    </PendingSubmitButton>
                 </div>
-            </form>
+            </PendingServerActionForm>
         </div>
     );
 }
@@ -332,7 +336,7 @@ function LiveRunPreview({ selection }: { selection: AiEvalLiveSelectionPreview }
                     </p>
                 ) : null}
             </div>
-            <form className="ai-eval-live-preview__queue" action={runAiEvalLiveScenariosAction}>
+            <PendingServerActionForm className="ai-eval-live-preview__queue" action={runAiEvalLiveScenariosAction} pendingAnnouncement="Queueing live run.">
                 <input type="hidden" name="creationRequestKey" value={randomUUID()} />
                 <input type="hidden" name="selectionFingerprint" value={preview.selectionFingerprint} />
                 {selection.requestedVersionIds.map((id) => (
@@ -342,10 +346,10 @@ function LiveRunPreview({ selection }: { selection: AiEvalLiveSelectionPreview }
                     <input type="checkbox" name="liveAcknowledgement" value="confirmed" required />
                     <span>I reviewed the estimate. The worker will spend credentialed calls.</span>
                 </label>
-                <button type="submit" className="button button--primary" disabled={!preview.withinLimits}>
+                <PendingSubmitButton className="button button--primary" disabled={!preview.withinLimits}>
                     Queue live run
-                </button>
-            </form>
+                </PendingSubmitButton>
+            </PendingServerActionForm>
         </section>
     );
 }

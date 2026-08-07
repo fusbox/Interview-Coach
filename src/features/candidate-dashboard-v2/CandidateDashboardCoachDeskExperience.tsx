@@ -2,23 +2,24 @@
 
 import {
     ArrowRight,
-    Check,
+    ArrowUpRight,
     ChevronRight,
     Clock3,
     Loader2,
     RefreshCw,
     Sparkles,
+    X,
     Zap,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
     useCallback,
     useEffect,
+    useLayoutEffect,
     useMemo,
     useRef,
     useState,
-    type CSSProperties,
-    type KeyboardEvent as ReactKeyboardEvent,
+    type RefCallback,
     type ReactNode,
 } from "react";
 
@@ -26,6 +27,10 @@ import { Surface } from "@/components/ui/surface";
 import { CandidateCoachAvatar } from "@/features/candidate-v2/CandidateCoachAvatar";
 
 import { CandidateCoachPlanReferenceDialog } from "./CandidateCoachPlanReference";
+import {
+    CandidatePlanDial,
+    type CandidatePlanDialState,
+} from "./CandidatePlanDial";
 import { CandidateCoachUpdateDialog } from "./CandidateCoachUpdateDialog";
 import {
     createCandidateCoachUpdateSeenStorageKey,
@@ -33,9 +38,10 @@ import {
     type CandidateDashboardPriority,
     type CoachUpdateSeenState,
 } from "./CandidateDashboardPriorityExperience";
-import { useCandidateNextRoundBuilder } from "./CandidateNextRoundBuilderExperience";
 import {
-    CandidateFixedPracticeAction,
+    useCandidateNextRoundBuilder,
+} from "./CandidateNextRoundBuilderExperience";
+import {
     CandidatePlanProgressAction,
 } from "./CandidatePlanProgressAction";
 import { CandidateQuestionPracticeActions } from "./CandidatePracticeNextActions";
@@ -44,8 +50,6 @@ import type {
     CandidateDashboardV2ReadModel,
 } from "./candidate-dashboard-read-model";
 
-type DashboardView = "practice" | "progress";
-
 type DashboardQuestionContext = {
     questionKey: string | null;
     questionNumber: number;
@@ -53,6 +57,23 @@ type DashboardQuestionContext = {
     categoryLabel: string;
     questionText: string | null;
 };
+
+export const CANDIDATE_COACH_UPDATE_REFRESH_DELAYS_MS = [
+    2_000,
+    4_000,
+    8_000,
+    16_000,
+    30_000,
+    65_000,
+] as const;
+
+export const CANDIDATE_ACTIVE_PRACTICE_NOTICE_DISMISSED_VERSION = "v1";
+
+export function createCandidateActivePracticeNoticeStorageKey(dashboard: CandidateDashboardV2ReadModel) {
+    return dashboard.activeRound
+        ? `candidate-v2:active-practice-notice-dismissed:${dashboard.candidateProfileId}:${dashboard.activeRound.candidatePracticeSessionId}`
+        : null;
+}
 
 export function CandidateDashboardCoachDeskExperience({
     dashboard,
@@ -63,13 +84,55 @@ export function CandidateDashboardCoachDeskExperience({
         ? dashboard.coachUpdateState
         : null;
     const storageKey = useMemo(() => createCandidateCoachUpdateSeenStorageKey(dashboard), [dashboard]);
+    const activePracticeNoticeStorageKey = useMemo(
+        () => createCandidateActivePracticeNoticeStorageKey(dashboard),
+        [dashboard],
+    );
     const [seenState, setSeenState] = useState<CoachUpdateSeenState>("unknown");
-    const [view, setView] = useState<DashboardView>("practice");
+    const [activePracticeNoticeResolution, setActivePracticeNoticeResolution] = useState<{
+        storageKey: string | null;
+        dismissed: boolean;
+    }>({ storageKey: null, dismissed: true });
     const [isCoachUpdateOpen, setIsCoachUpdateOpen] = useState(false);
     const [isCoachPlanOpen, setIsCoachPlanOpen] = useState(false);
+    const [isPracticeNextOpen, setIsPracticeNextOpen] = useState(false);
     const [repairState, setRepairState] = useState<"idle" | "submitting" | "error">("idle");
+    const [pendingRefreshState, setPendingRefreshState] = useState<{
+        requestKey: string | null;
+        attempt: number;
+    }>({ requestKey: null, attempt: 0 });
     const router = useRouter();
     const nextRoundBuilder = useCandidateNextRoundBuilder();
+    const [continueRoundActionElement, setContinueRoundActionElement] = useState<HTMLAnchorElement | null>(null);
+    const captureContinueRoundAction = useCallback<RefCallback<HTMLAnchorElement | HTMLElement | HTMLButtonElement>>(
+        (node) => setContinueRoundActionElement(node instanceof HTMLAnchorElement ? node : null),
+        [],
+    );
+    const pendingCoachUpdateRequestKey = dashboard.coachUpdateState.status === "candidate_coach_update_pending"
+        ? `${dashboard.coachUpdateState.candidatePracticeSessionId}:${dashboard.coachUpdateState.requestedAt}`
+        : null;
+    const pendingRefreshAttempt = pendingRefreshState.requestKey === pendingCoachUpdateRequestKey
+        ? pendingRefreshState.attempt
+        : 0;
+
+    useEffect(() => {
+        if (
+            !pendingCoachUpdateRequestKey
+            || pendingRefreshAttempt >= CANDIDATE_COACH_UPDATE_REFRESH_DELAYS_MS.length
+        ) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setPendingRefreshState({
+                requestKey: pendingCoachUpdateRequestKey,
+                attempt: pendingRefreshAttempt + 1,
+            });
+            router.refresh();
+        }, CANDIDATE_COACH_UPDATE_REFRESH_DELAYS_MS[pendingRefreshAttempt]);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [pendingCoachUpdateRequestKey, pendingRefreshAttempt, router]);
 
     useEffect(() => {
         if (!readyState || !storageKey) {
@@ -83,6 +146,43 @@ export function CandidateDashboardCoachDeskExperience({
             setSeenState("new");
         }
     }, [readyState, storageKey]);
+
+    useEffect(() => {
+        if (!activePracticeNoticeStorageKey) {
+            setActivePracticeNoticeResolution({ storageKey: null, dismissed: true });
+            return;
+        }
+
+        const syncNoticeState = () => {
+            try {
+                setActivePracticeNoticeResolution({
+                    storageKey: activePracticeNoticeStorageKey,
+                    dismissed: window.localStorage.getItem(activePracticeNoticeStorageKey)
+                        === CANDIDATE_ACTIVE_PRACTICE_NOTICE_DISMISSED_VERSION,
+                });
+            } catch {
+                setActivePracticeNoticeResolution({
+                    storageKey: activePracticeNoticeStorageKey,
+                    dismissed: false,
+                });
+            }
+        };
+        const handleStorage = (event: StorageEvent) => {
+            if (
+                event.key === activePracticeNoticeStorageKey
+                && event.newValue === CANDIDATE_ACTIVE_PRACTICE_NOTICE_DISMISSED_VERSION
+            ) {
+                setActivePracticeNoticeResolution({
+                    storageKey: activePracticeNoticeStorageKey,
+                    dismissed: true,
+                });
+            }
+        };
+
+        syncNoticeState();
+        window.addEventListener("storage", handleStorage);
+        return () => window.removeEventListener("storage", handleStorage);
+    }, [activePracticeNoticeStorageKey]);
 
     const markCoachUpdateSeen = useCallback(() => {
         if (!readyState || !storageKey) return;
@@ -99,6 +199,26 @@ export function CandidateDashboardCoachDeskExperience({
         markCoachUpdateSeen();
         setIsCoachUpdateOpen(true);
     }, [markCoachUpdateSeen]);
+    const closeCoachUpdate = useCallback(() => setIsCoachUpdateOpen(false), []);
+    const openPlan = useCallback(() => setIsCoachPlanOpen(true), []);
+    const closePlan = useCallback(() => setIsCoachPlanOpen(false), []);
+    const dismissActivePracticeNotice = useCallback(() => {
+        if (activePracticeNoticeStorageKey) {
+            try {
+                window.localStorage.setItem(
+                    activePracticeNoticeStorageKey,
+                    CANDIDATE_ACTIVE_PRACTICE_NOTICE_DISMISSED_VERSION,
+                );
+            } catch {
+                // Browser persistence is deliberately noncritical presentation state.
+            }
+        }
+        setActivePracticeNoticeResolution({
+            storageKey: activePracticeNoticeStorageKey,
+            dismissed: true,
+        });
+        window.setTimeout(() => continueRoundActionElement?.focus(), 0);
+    }, [activePracticeNoticeStorageKey, continueRoundActionElement]);
 
     const repairCoachUpdate = useCallback(async () => {
         const state = dashboard.coachUpdateState;
@@ -106,8 +226,11 @@ export function CandidateDashboardCoachDeskExperience({
 
         setRepairState("submitting");
         try {
+            const repairParams = state.sourceQuestionKey
+                ? `?question=${encodeURIComponent(state.sourceQuestionKey)}`
+                : "";
             const response = await fetch(
-                `/candidate/session/${encodeURIComponent(state.candidatePracticeSessionId)}/coach-update/repair`,
+                `/candidate/session/${encodeURIComponent(state.candidatePracticeSessionId)}/coach-update/repair${repairParams}`,
                 { method: "POST" },
             );
             if (!response.ok) throw new Error("Coach Update repair failed.");
@@ -118,60 +241,51 @@ export function CandidateDashboardCoachDeskExperience({
         }
     }, [dashboard.coachUpdateState, repairState, router]);
 
+    const checkPendingCoachUpdate = useCallback(() => {
+        if (!pendingCoachUpdateRequestKey) return;
+        setPendingRefreshState({ requestKey: pendingCoachUpdateRequestKey, attempt: 0 });
+        router.refresh();
+    }, [pendingCoachUpdateRequestKey, router]);
+
     const priority = getDashboardPriority(dashboard, seenState);
-    const openPlan = () => setIsCoachPlanOpen(true);
 
     return (
         <>
-            <div className="candidate-dashboard-coach-desk">
-                <CandidateDashboardViewTabs view={view} onChange={setView} />
-
-                {view === "practice" ? (
-                    <section
-                        className="candidate-dashboard-view-panel"
-                        id="candidate-dashboard-practice-panel"
-                        role="tabpanel"
-                        aria-labelledby="candidate-dashboard-practice-tab"
-                    >
-                        <CandidateDashboardStage
-                            dashboard={dashboard}
-                            priority={priority}
-                            isCoachUpdateOpen={isCoachUpdateOpen}
-                            onOpenCoachUpdate={openCoachUpdate}
-                            onOpenPlan={openPlan}
-                            onOpenBuilder={nextRoundBuilder?.openBuilder}
-                        />
-                        <CandidateDashboardQuietSecondary
-                            dashboard={dashboard}
-                            priority={priority}
-                            repairState={repairState}
-                            onOpenCoachUpdate={openCoachUpdate}
-                            onRepairCoachUpdate={repairCoachUpdate}
-                        />
-                    </section>
-                ) : (
-                    <section
-                        className="candidate-dashboard-view-panel"
-                        id="candidate-dashboard-progress-panel"
-                        role="tabpanel"
-                        aria-labelledby="candidate-dashboard-progress-tab"
-                    >
-                        <CandidateDashboardPlanProgress dashboard={dashboard} onOpenPlan={openPlan} />
-                        <CandidateDashboardQuietSecondary
-                            dashboard={dashboard}
-                            priority={priority}
-                            repairState={repairState}
-                            onOpenCoachUpdate={openCoachUpdate}
-                            onRepairCoachUpdate={repairCoachUpdate}
-                        />
-                    </section>
-                )}
+            <div className="candidate-dashboard-coach-desk" data-dashboard-state={priority}>
+                {dashboard.activeRound
+                    && activePracticeNoticeResolution.storageKey === activePracticeNoticeStorageKey
+                    && !activePracticeNoticeResolution.dismissed ? (
+                    <CandidateDashboardActivePracticeNotice
+                        dashboard={dashboard}
+                        onDismiss={dismissActivePracticeNotice}
+                    />
+                ) : null}
+                <CandidateDashboardComposition
+                    dashboard={dashboard}
+                    priority={priority}
+                    isCoachUpdateOpen={isCoachUpdateOpen}
+                    repairState={repairState}
+                    pendingRefreshExhausted={Boolean(
+                        pendingCoachUpdateRequestKey
+                        && pendingRefreshAttempt >= CANDIDATE_COACH_UPDATE_REFRESH_DELAYS_MS.length
+                    )}
+                    onOpenCoachUpdate={openCoachUpdate}
+                    onOpenPlan={openPlan}
+                    onOpenPracticeNext={() => setIsPracticeNextOpen(true)}
+                    onOpenBuilder={nextRoundBuilder
+                        ? () => nextRoundBuilder.openBuilder()
+                        : undefined}
+                    onRepairCoachUpdate={repairCoachUpdate}
+                    onCheckPendingCoachUpdate={checkPendingCoachUpdate}
+                    continueRoundActionRef={captureContinueRoundAction}
+                />
             </div>
 
             {isCoachUpdateOpen && dashboard.coachUpdateDetail ? (
                 <CandidateCoachUpdateDialog
                     detail={dashboard.coachUpdateDetail}
-                    onClose={() => setIsCoachUpdateOpen(false)}
+                    suppressPracticeActions={Boolean(dashboard.activeRound)}
+                    onClose={closeCoachUpdate}
                 />
             ) : null}
 
@@ -180,78 +294,71 @@ export function CandidateDashboardCoachDeskExperience({
                     answerReviews={dashboard.coachUpdateDetail?.items}
                     plan={dashboard.coachPlan}
                     preparedness={dashboard.questionPreparedness}
-                    onClose={() => setIsCoachPlanOpen(false)}
+                    initialPlanIncomplete={Boolean(dashboard.activeRound)}
+                    initialPlanAnsweredQuestionKeys={dashboard.activeRound?.answeredQuestionKeys}
+                    onClose={closePlan}
+                />
+            ) : null}
+
+            {isPracticeNextOpen && dashboard.practiceDirection.coachGuidedFocus ? (
+                <CandidateDashboardPracticeNextDialog
+                    dashboard={dashboard}
+                    onClose={() => setIsPracticeNextOpen(false)}
                 />
             ) : null}
         </>
     );
 }
-
-function CandidateDashboardViewTabs({
-    view,
-    onChange,
-}: {
-    view: DashboardView;
-    onChange: (view: DashboardView) => void;
-}) {
-    const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
-    const tabs: Array<{ id: DashboardView; label: string }> = [
-        { id: "practice", label: "Practice" },
-        { id: "progress", label: "Progress" },
-    ];
-
-    const handleKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
-        let nextIndex = index;
-        if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
-        else if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
-        else if (event.key === "Home") nextIndex = 0;
-        else if (event.key === "End") nextIndex = tabs.length - 1;
-        else return;
-
-        event.preventDefault();
-        onChange(tabs[nextIndex].id);
-        tabRefs.current[nextIndex]?.focus();
-    };
-
-    return (
-        <div className="candidate-dashboard-view-tabs" role="tablist" aria-label="Dashboard view">
-            {tabs.map((tab, index) => (
-                <button
-                    key={tab.id}
-                    ref={(element) => { tabRefs.current[index] = element; }}
-                    id={`candidate-dashboard-${tab.id}-tab`}
-                    type="button"
-                    role="tab"
-                    aria-selected={view === tab.id}
-                    aria-controls={`candidate-dashboard-${tab.id}-panel`}
-                    tabIndex={view === tab.id ? 0 : -1}
-                    onClick={() => onChange(tab.id)}
-                    onKeyDown={(event) => handleKeyDown(event, index)}
-                >
-                    {tab.label}
-                </button>
-            ))}
-        </div>
-    );
-}
-
-function CandidateDashboardStage({
+function CandidateDashboardComposition({
     dashboard,
     priority,
     isCoachUpdateOpen,
     onOpenCoachUpdate,
     onOpenPlan,
+    onOpenPracticeNext,
     onOpenBuilder,
+    repairState,
+    pendingRefreshExhausted,
+    onRepairCoachUpdate,
+    onCheckPendingCoachUpdate,
+    continueRoundActionRef,
 }: {
     dashboard: CandidateDashboardV2ReadModel;
     priority: CandidateDashboardPriority;
     isCoachUpdateOpen: boolean;
     onOpenCoachUpdate: () => void;
     onOpenPlan: () => void;
+    onOpenPracticeNext: () => void;
     onOpenBuilder?: () => void;
+    repairState: "idle" | "submitting" | "error";
+    pendingRefreshExhausted: boolean;
+    onRepairCoachUpdate: () => void;
+    onCheckPendingCoachUpdate: () => void;
+    continueRoundActionRef: RefCallback<HTMLAnchorElement | HTMLElement | HTMLButtonElement>;
 }) {
+    const nextRoundBuilder = useCandidateNextRoundBuilder();
+    const hasQueuedNextRound = Boolean(nextRoundBuilder?.builder.itemCount);
+    const hasPlan = Boolean(dashboard.coachPlan || dashboard.questionPreparedness);
+
     if (priority === "active-round" && dashboard.activeRound) {
-        return <CandidateDashboardActiveRoundStage dashboard={dashboard} />;
+        return (
+            <div className={`candidate-dashboard-bento-grid is-active-round${hasPlan ? "" : " is-planless"}`}>
+                <CandidateDashboardUnfinishedActionStack
+                    dashboard={dashboard}
+                    continueRoundActionRef={continueRoundActionRef}
+                />
+                <CandidateDashboardPlanProgress dashboard={dashboard} onOpenPlan={onOpenPlan} />
+                <CandidateDashboardQuietSecondary
+                    dashboard={dashboard}
+                    priority={priority}
+                    repairState={repairState}
+                    pendingRefreshExhausted={pendingRefreshExhausted}
+                    onOpenCoachUpdate={onOpenCoachUpdate}
+                    onRepairCoachUpdate={onRepairCoachUpdate}
+                    onCheckPendingCoachUpdate={onCheckPendingCoachUpdate}
+                />
+            </div>
+        );
     }
 
     if (
@@ -259,60 +366,120 @@ function CandidateDashboardStage({
         && dashboard.coachUpdateState.status === "candidate_coach_update_ready"
         && dashboard.coachUpdateDetail
     ) {
-        return (
+        return <div className={`candidate-dashboard-bento-grid is-ready-update${dashboard.activeRound ? " has-active-round" : ""}${hasPlan ? " has-plan" : ""}${hasPlan || hasQueuedNextRound || dashboard.activeRound ? "" : " is-stage-only"}`}>
             <CandidateDashboardReadyUpdateStage
                 dashboard={dashboard}
                 isOpen={isCoachUpdateOpen}
                 onOpen={onOpenCoachUpdate}
             />
-        );
+            {dashboard.activeRound ? (
+                <>
+                    <CandidateDashboardPlanProgress dashboard={dashboard} onOpenPlan={onOpenPlan} />
+                    <CandidateDashboardUnfinishedActionStack
+                        dashboard={dashboard}
+                        continueRoundActionRef={continueRoundActionRef}
+                    />
+                </>
+            ) : (
+                <CandidateDashboardSupportShelf
+                    dashboard={dashboard}
+                    hasQueuedNextRound={hasQueuedNextRound}
+                    onOpenPlan={onOpenPlan}
+                />
+            )}
+        </div>;
     }
 
     if (priority === "practice-next" && dashboard.practiceDirection.coachGuidedFocus) {
-        return <CandidateDashboardPracticeNextStage dashboard={dashboard} />;
+        return (
+            <div className={`candidate-dashboard-bento-grid is-practice-next${hasPlan ? "" : " is-planless"}`}>
+                <div className={`candidate-dashboard-commitment-stack${hasQueuedNextRound ? "" : " is-single"}`}>
+                    <CandidateDashboardPracticeNextWidget dashboard={dashboard} onOpen={onOpenPracticeNext} />
+                    <CandidateDashboardNextRoundWidget />
+                </div>
+                <CandidateDashboardPlanProgress dashboard={dashboard} onOpenPlan={onOpenPlan} />
+                <CandidateDashboardQuietSecondary
+                    dashboard={dashboard}
+                    priority={priority}
+                    repairState={repairState}
+                    pendingRefreshExhausted={pendingRefreshExhausted}
+                    onOpenCoachUpdate={onOpenCoachUpdate}
+                    onRepairCoachUpdate={onRepairCoachUpdate}
+                    onCheckPendingCoachUpdate={onCheckPendingCoachUpdate}
+                />
+            </div>
+        );
     }
 
     return (
-        <CandidateDashboardPlanStage
-            dashboard={dashboard}
-            onOpenPlan={onOpenPlan}
-            onOpenBuilder={onOpenBuilder}
-        />
+        <div className={`candidate-dashboard-bento-grid is-plan-focus${hasQueuedNextRound ? " has-next-round" : ""}`}>
+            <CandidateDashboardPlanStage
+                dashboard={dashboard}
+                onOpenPlan={onOpenPlan}
+                onOpenBuilder={onOpenBuilder}
+                hasQueuedNextRound={hasQueuedNextRound}
+            />
+            {hasQueuedNextRound ? (
+                <div className="candidate-dashboard-compact-row">
+                    <CandidateDashboardNextRoundWidget compact />
+                </div>
+            ) : null}
+            <CandidateDashboardQuietSecondary
+                dashboard={dashboard}
+                priority={priority}
+                repairState={repairState}
+                pendingRefreshExhausted={pendingRefreshExhausted}
+                onOpenCoachUpdate={onOpenCoachUpdate}
+                onRepairCoachUpdate={onRepairCoachUpdate}
+                onCheckPendingCoachUpdate={onCheckPendingCoachUpdate}
+            />
+        </div>
     );
 }
 
-function CandidateDashboardActiveRoundStage({ dashboard }: { dashboard: CandidateDashboardV2ReadModel }) {
+function CandidateDashboardActivePracticeNotice({
+    dashboard,
+    onDismiss,
+}: {
+    dashboard: CandidateDashboardV2ReadModel;
+    onDismiss: () => void;
+}) {
     const activeRound = dashboard.activeRound;
     if (!activeRound) return null;
-
-    const question = resolveDashboardQuestion(dashboard, { questionNumber: activeRound.currentQuestionNumber });
 
     return (
         <Surface
             as="section"
-            prominence="glass-raised"
-            className="candidate-dashboard-stage candidate-dashboard-stage--unfinished"
-            aria-labelledby="candidate-dashboard-active-round-title"
+            prominence="calm"
+            className="candidate-dashboard-active-practice-notice"
+            aria-labelledby="candidate-dashboard-active-practice-notice-title"
         >
-            <CandidateDashboardStageMeta
-                icon={<Clock3 size={16} strokeWidth={2.2} />}
-                label="Round in progress"
-                detail={activeRound.progressLabel}
-            />
-            <h2 id="candidate-dashboard-active-round-title">Pick up where you left off</h2>
-            <p>
-                Your answer to question {activeRound.currentQuestionNumber} is still waiting. Nothing you submitted has been lost.
-            </p>
-            <CandidateDashboardQuestionReference question={question} compact />
             <div
-                className="candidate-dashboard-round-progress"
-                role="img"
-                aria-label={`${activeRound.answeredCount} of ${activeRound.questionCount} questions answered`}
+                className="candidate-dashboard-active-practice-notice__message"
+                role="status"
+                aria-atomic="true"
+            >
+                <span className="candidate-dashboard-active-practice-notice__icon" aria-hidden="true">
+                    <Clock3 size={17} strokeWidth={2.2} />
+                </span>
+                <div className="candidate-dashboard-active-practice-notice__copy">
+                    <strong id="candidate-dashboard-active-practice-notice-title">Practice in progress</strong>
+                    <span>{activeRound.progressLabel}</span>
+                </div>
+            </div>
+            <div
+                className="candidate-dashboard-round-progress candidate-dashboard-active-practice-notice__progress"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={activeRound.questionCount}
+                aria-valuenow={activeRound.answeredCount}
+                aria-valuetext={`${activeRound.answeredCount} of ${activeRound.questionCount} questions answered`}
             >
                 {Array.from({ length: activeRound.questionCount }, (_, index) => (
                     <span
+                        aria-hidden="true"
                         key={index}
-                        className={index < activeRound.answeredCount
+                        className={activeRound.answeredQuestionNumbers?.includes(index + 1)
                             ? "is-complete"
                             : index + 1 === activeRound.currentQuestionNumber
                                 ? "is-current"
@@ -320,11 +487,73 @@ function CandidateDashboardActiveRoundStage({ dashboard }: { dashboard: Candidat
                     />
                 ))}
             </div>
-            <a className="candidate-dashboard-stage__primary" href={activeRound.href}>
-                Resume question {activeRound.currentQuestionNumber}
+            <a className="candidate-dashboard-active-practice-notice__resume" href={activeRound.href}>
+                Resume practice
                 <ArrowRight size={17} aria-hidden="true" />
             </a>
+            <button
+                className="candidate-dashboard-active-practice-notice__dismiss"
+                type="button"
+                aria-label="Dismiss practice-in-progress notification"
+                onClick={onDismiss}
+            >
+                <X size={18} aria-hidden="true" />
+            </button>
         </Surface>
+    );
+}
+
+function CandidateDashboardUnfinishedActionStack({
+    dashboard,
+    continueRoundActionRef,
+}: {
+    dashboard: CandidateDashboardV2ReadModel;
+    continueRoundActionRef: RefCallback<HTMLAnchorElement | HTMLElement | HTMLButtonElement>;
+}) {
+    const activeRound = dashboard.activeRound;
+    if (!activeRound) return null;
+    return (
+        <div className="candidate-dashboard-commitment-stack candidate-dashboard-unfinished-actions">
+            <Surface
+                ref={continueRoundActionRef}
+                as="a"
+                href={activeRound.href}
+                prominence="calm"
+                className="candidate-dashboard-action-tile candidate-dashboard-action-tile--next-round"
+                aria-label={`Continue practice at question ${activeRound.currentQuestionNumber}`}
+            >
+                <span className="candidate-dashboard-action-tile__topline">
+                    <strong>Continue round</strong>
+                    <span className="candidate-dashboard-action-tile__direction" aria-hidden="true">
+                        <ArrowUpRight size={20} strokeWidth={2.4} />
+                    </span>
+                </span>
+                <span className="candidate-dashboard-action-tile__guidance">Keep moving through your plan.</span>
+                <span className="candidate-dashboard-action-tile__mark candidate-dashboard-action-tile__mark--count" aria-hidden="true">
+                    {activeRound.remainingQuestionCount ?? Math.max(activeRound.questionCount - activeRound.answeredCount, 0)}
+                </span>
+                <span className="candidate-dashboard-action-tile__descriptor">questions remaining</span>
+            </Surface>
+            <Surface
+                as="a"
+                href={activeRound.oneQuestionHref ?? `${activeRound.href}?pace=one`}
+                prominence="feature-tint"
+                className="candidate-dashboard-action-tile candidate-dashboard-action-tile--practice"
+                aria-label={`Practice only question ${activeRound.currentQuestionNumber} now`}
+            >
+                <span className="candidate-dashboard-action-tile__topline">
+                    <strong>One-question round</strong>
+                    <span className="candidate-dashboard-action-tile__direction" aria-hidden="true">
+                        <ArrowUpRight size={20} strokeWidth={2.4} />
+                    </span>
+                </span>
+                <span className="candidate-dashboard-action-tile__guidance">Take one small step.</span>
+                <span className="candidate-dashboard-action-tile__mark" aria-hidden="true">
+                    <Zap size={27} strokeWidth={2.35} />
+                </span>
+                <span className="candidate-dashboard-action-tile__descriptor">Question {activeRound.currentQuestionNumber}</span>
+            </Surface>
+        </div>
     );
 }
 
@@ -377,35 +606,97 @@ function CandidateDashboardReadyUpdateStage({
     );
 }
 
-function CandidateDashboardPracticeNextStage({ dashboard }: { dashboard: CandidateDashboardV2ReadModel }) {
+function CandidateDashboardPracticeNextWidget({
+    dashboard,
+    onOpen,
+}: {
+    dashboard: CandidateDashboardV2ReadModel;
+    onOpen: () => void;
+}) {
     const focus = dashboard.practiceDirection.coachGuidedFocus;
     if (!focus) return null;
 
     const question = resolveDashboardQuestion(dashboard, { questionKey: focus.questionKeys[0] });
+    const label = question
+        ? `Open one-question practice for question ${question.questionNumber}`
+        : "Open one-question practice";
 
     return (
         <Surface
-            as="section"
-            prominence="glass-raised"
-            className="candidate-dashboard-stage candidate-dashboard-stage--next"
-            aria-labelledby="candidate-dashboard-practice-next-title"
+            as="button"
+            prominence="feature-tint"
+            className="candidate-dashboard-action-tile candidate-dashboard-action-tile--practice"
+            aria-label={label}
+            aria-haspopup="dialog"
+            onClick={onOpen}
         >
-            <CandidateDashboardStageMeta
-                icon={<Zap size={16} strokeWidth={2.35} />}
-                label="Practice next"
-                detail="From your latest feedback"
-                iconTone="action"
-            />
-            <CandidateDashboardQuestionReference question={question} />
-            <h2 id="candidate-dashboard-practice-next-title">{focus.title}</h2>
-            <CandidateQuestionPracticeActions
-                pointer={{
-                    sourceCandidatePracticeSessionId: focus.candidatePracticeSessionId,
-                    sourceQuestionKey: focus.sourceQuestionKey,
-                }}
-                practiceNowHref={focus.href}
-            />
+            <span className="candidate-dashboard-action-tile__topline">
+                <strong>One-question round</strong>
+                <span className="candidate-dashboard-action-tile__direction" aria-hidden="true">
+                    <ArrowUpRight size={20} strokeWidth={2.4} />
+                </span>
+            </span>
+            <span className="candidate-dashboard-action-tile__guidance">Sharpen one answer.</span>
+            <span className="candidate-dashboard-action-tile__mark" aria-hidden="true">
+                <Zap size={27} strokeWidth={2.35} />
+            </span>
+            <span className="candidate-dashboard-action-tile__descriptor">
+                Practice next{question ? ` · Q${question.questionNumber}` : ""}
+            </span>
         </Surface>
+    );
+}
+
+function CandidateDashboardNextRoundWidget({ compact = false }: { compact?: boolean }) {
+    const controller = useCandidateNextRoundBuilder();
+    const triggerRef = useRef<HTMLButtonElement | null>(null);
+    if (!controller || controller.builder.itemCount < 1) return null;
+
+    const count = controller.builder.itemCount;
+    return (
+        <Surface
+            ref={triggerRef}
+            as="button"
+            prominence="calm"
+            className={`candidate-dashboard-action-tile candidate-dashboard-action-tile--next-round${compact ? " is-compact" : ""}`}
+            aria-label={`Review next round, ${count} ${count === 1 ? "question" : "questions"}`}
+            aria-haspopup="dialog"
+            onClick={() => controller.openBuilder(triggerRef.current)}
+        >
+            <span className="candidate-dashboard-action-tile__topline">
+                <strong>Next round</strong>
+                <span className="candidate-dashboard-action-tile__direction" aria-hidden="true">
+                    <ArrowUpRight size={20} strokeWidth={2.4} />
+                </span>
+            </span>
+            <span className="candidate-dashboard-action-tile__guidance">Build a focused round.</span>
+            <span className="candidate-dashboard-action-tile__mark candidate-dashboard-action-tile__mark--count" aria-hidden="true">
+                {count}
+            </span>
+            <span className="candidate-dashboard-action-tile__descriptor">
+                {count === 1 ? "1 question ready" : `${count} questions ready`}
+            </span>
+        </Surface>
+    );
+}
+
+function CandidateDashboardSupportShelf({
+    dashboard,
+    hasQueuedNextRound,
+    onOpenPlan,
+}: {
+    dashboard: CandidateDashboardV2ReadModel;
+    hasQueuedNextRound: boolean;
+    onOpenPlan: () => void;
+}) {
+    const hasPlan = Boolean(dashboard.coachPlan || dashboard.questionPreparedness);
+    if (!hasPlan && !hasQueuedNextRound) return null;
+
+    return (
+        <div className={`candidate-dashboard-support-shelf${hasPlan && !hasQueuedNextRound ? " is-plan-only" : ""}`}>
+            {hasPlan ? <CandidateDashboardPlanProgress dashboard={dashboard} onOpenPlan={onOpenPlan} /> : null}
+            {hasQueuedNextRound ? <CandidateDashboardNextRoundWidget /> : null}
+        </div>
     );
 }
 
@@ -413,18 +704,55 @@ function CandidateDashboardPlanStage({
     dashboard,
     onOpenPlan,
     onOpenBuilder,
+    hasQueuedNextRound,
 }: {
     dashboard: CandidateDashboardV2ReadModel;
     onOpenPlan: () => void;
     onOpenBuilder?: () => void;
+    hasQueuedNextRound: boolean;
 }) {
     const planProgress = dashboard.practiceDirection.planProgress;
-    const isColdStart = planProgress.source === "first_round";
+    const isColdStart = planProgress.source === "first_round" && !dashboard.questionPreparedness;
     const firstQuestionKey = planProgress.questionKeys[0] ?? dashboard.coachPlan?.questions[0]?.questionKey;
     const question = firstQuestionKey
         ? resolveDashboardQuestion(dashboard, { questionKey: firstQuestionKey })
         : null;
     const questionCount = dashboard.coachPlan?.questionCount ?? dashboard.questionPreparedness?.coverage.canonicalQuestionCount ?? 0;
+    const primaryAction = planProgress.source === "completed_plan" ? (
+        !hasQueuedNextRound && onOpenBuilder ? (
+            <button className="candidate-dashboard-stage__primary" type="button" onClick={onOpenBuilder}>
+                Open practice builder
+                <ArrowRight size={17} aria-hidden="true" />
+            </button>
+        ) : null
+    ) : (
+        <CandidatePlanProgressAction
+            planProgress={planProgress}
+            label={getPlanProgressActionLabel(planProgress.source, question?.questionNumber)}
+            onCustomize={onOpenBuilder}
+        />
+    );
+    const planMove = (
+        <div className="candidate-dashboard-plan-focus__move">
+            <h2 id="candidate-dashboard-plan-stage-title">
+                {isColdStart
+                    ? "Start with the questions most likely to shape this interview"
+                    : planProgress.title}
+            </h2>
+            <p>
+                {isColdStart
+                    ? "Practice one answer now. Your plan will fill in with evidence as you work."
+                    : planProgress.body}
+            </p>
+            {question ? <CandidateDashboardQuestionReference question={question} /> : null}
+            {primaryAction}
+            {dashboard.coachPlan ? (
+                <button className="candidate-dashboard-stage__secondary" type="button" onClick={onOpenPlan}>
+                    {isColdStart ? "Review the plan first" : "View Coach Plan"}
+                </button>
+            ) : null}
+        </div>
+    );
 
     return (
         <Surface
@@ -438,34 +766,13 @@ function CandidateDashboardPlanStage({
                 label={isColdStart ? "Your plan is ready" : "Coach plan"}
                 detail={questionCount > 0 ? `${questionCount} questions` : undefined}
             />
-            <h2 id="candidate-dashboard-plan-stage-title">
-                {isColdStart
-                    ? "Start with the questions most likely to shape this interview"
-                    : planProgress.title}
-            </h2>
-            <p>
-                {isColdStart
-                    ? "Practice one answer now. Your plan will fill in with evidence as you work."
-                    : planProgress.body}
-            </p>
-            {question ? <CandidateDashboardQuestionReference question={question} /> : null}
-            {planProgress.source === "completed_plan" && onOpenBuilder ? (
-                <button className="candidate-dashboard-stage__primary" type="button" onClick={onOpenBuilder}>
-                    Open practice builder
-                    <ArrowRight size={17} aria-hidden="true" />
-                </button>
-            ) : (
-                <CandidatePlanProgressAction
-                    planProgress={planProgress}
-                    label={getPlanProgressActionLabel(planProgress.source, question?.questionNumber)}
-                    onCustomize={onOpenBuilder}
-                />
-            )}
-            {dashboard.coachPlan ? (
-                <button className="candidate-dashboard-stage__secondary" type="button" onClick={onOpenPlan}>
-                    {isColdStart ? "Review the plan first" : "View Coach Plan"}
-                </button>
-            ) : null}
+            {isColdStart ? <CandidateDashboardPlanIgnition dashboard={dashboard} /> : null}
+            {!isColdStart && dashboard.questionPreparedness ? (
+                <div className="candidate-dashboard-plan-focus__workspace">
+                    <CandidateDashboardPlanDial dashboard={dashboard} />
+                    {planMove}
+                </div>
+            ) : planMove}
         </Surface>
     );
 }
@@ -518,30 +825,32 @@ function CandidateDashboardQuietSecondary({
     dashboard,
     priority,
     repairState,
+    pendingRefreshExhausted,
     onOpenCoachUpdate,
     onRepairCoachUpdate,
+    onCheckPendingCoachUpdate,
 }: {
     dashboard: CandidateDashboardV2ReadModel;
     priority: CandidateDashboardPriority;
     repairState: "idle" | "submitting" | "error";
+    pendingRefreshExhausted: boolean;
     onOpenCoachUpdate: () => void;
     onRepairCoachUpdate: () => void;
+    onCheckPendingCoachUpdate: () => void;
 }) {
     const state = dashboard.coachUpdateState;
 
-    if (priority === "active-round" || state.status === "candidate_coach_update_awaiting_practice") {
+    if (state.status === "candidate_coach_update_awaiting_practice") {
         return null;
     }
 
-    if (priority === "coach-update") {
-        return <CandidateDashboardQuietPracticeNext dashboard={dashboard} />;
-    }
+    if (priority === "coach-update") return null;
 
     if (state.status === "candidate_coach_update_ready" && dashboard.coachUpdateDetail) {
         return (
             <Surface
                 as="button"
-                prominence="glass-quiet"
+                prominence="coach-quiet"
                 className="candidate-dashboard-quiet-row candidate-dashboard-quiet-row--update"
                 type="button"
                 data-coach-update-trigger
@@ -567,6 +876,8 @@ function CandidateDashboardQuietSecondary({
                 state={state}
                 repairState={repairState}
                 onRepair={onRepairCoachUpdate}
+                showPendingRefreshAction={pendingRefreshExhausted}
+                onRefreshPending={onCheckPendingCoachUpdate}
             />
         );
     }
@@ -574,51 +885,18 @@ function CandidateDashboardQuietSecondary({
     return null;
 }
 
-function CandidateDashboardQuietPracticeNext({ dashboard }: { dashboard: CandidateDashboardV2ReadModel }) {
-    const focus = dashboard.practiceDirection.coachGuidedFocus;
-    if (!focus) return null;
-
-    const question = resolveDashboardQuestion(dashboard, { questionKey: focus.questionKeys[0] });
-    const label = question ? `Practice next: question ${question.questionNumber}, ${focus.title}` : `Practice next: ${focus.title}`;
-
-    return (
-        <Surface
-            as="article"
-            prominence="glass-quiet"
-            className="candidate-dashboard-quiet-row candidate-dashboard-quiet-row--next"
-            id="practice-next"
-        >
-            <span className="candidate-dashboard-quiet-row__icon" aria-hidden="true">
-                <Zap size={17} strokeWidth={2.3} />
-            </span>
-            <span className="candidate-dashboard-quiet-row__eyebrow">
-                Practice next{question ? ` · Question ${question.questionNumber}` : ""}
-            </span>
-            <strong>{focus.title}</strong>
-            {question?.questionText ? <em>{question.questionText}</em> : null}
-            <CandidateFixedPracticeAction
-                source="coach_update_detail"
-                items={[{
-                    intent: "coach-update-feedback-focus",
-                    fromSession: focus.candidatePracticeSessionId,
-                    questionKey: focus.sourceQuestionKey,
-                }]}
-                label="Start"
-                ariaLabel={label}
-                className="candidate-dashboard-quiet-row__overlay-action"
-            />
-        </Surface>
-    );
-}
-
 function CandidateDashboardCoachUpdateStatus({
     state,
     repairState,
     onRepair,
+    showPendingRefreshAction,
+    onRefreshPending,
 }: {
     state: Exclude<CandidateDashboardCoachUpdateState, { status: "candidate_coach_update_ready" | "candidate_coach_update_awaiting_practice" }>;
     repairState: "idle" | "submitting" | "error";
     onRepair: () => void;
+    showPendingRefreshAction: boolean;
+    onRefreshPending: () => void;
 }) {
     const isPending = state.status === "candidate_coach_update_pending";
 
@@ -626,6 +904,7 @@ function CandidateDashboardCoachUpdateStatus({
         <Surface
             as="article"
             prominence="glass-quiet"
+            state={isPending ? "loading" : "default"}
             className="candidate-dashboard-status-row"
             aria-live={isPending ? "polite" : undefined}
         >
@@ -647,6 +926,9 @@ function CandidateDashboardCoachUpdateStatus({
                         {repairState === "submitting" ? "Preparing Coach Update" : "Try Coach Update again"}
                     </button>
                 ) : null}
+                {isPending && showPendingRefreshAction ? (
+                    <button type="button" onClick={onRefreshPending}>Check for update</button>
+                ) : null}
                 {repairState === "error" ? (
                     <p role="alert">I still couldn’t prepare the update. Your practice remains saved.</p>
                 ) : null}
@@ -662,92 +944,208 @@ function CandidateDashboardPlanProgress({
     dashboard: CandidateDashboardV2ReadModel;
     onOpenPlan: () => void;
 }) {
-    const preparednessByQuestion = new Map(
-        dashboard.questionPreparedness?.questions.map((question) => [question.questionKey, question]) ?? [],
-    );
-    const planQuestions = dashboard.coachPlan?.questions
-        ?? dashboard.questionPreparedness?.questions.map((question) => ({
-            questionKey: question.questionKey,
-            questionNumber: question.questionNumber,
-            category: question.category,
-            categoryLabel: formatCategoryLabel(question.category),
-            questionText: question.questionText,
-            evidenceStatus: question.state === "not_practiced" ? "missing_evidence" as const : "practiced" as const,
-        }))
-        ?? [];
-    const totalCount = dashboard.questionPreparedness?.coverage.canonicalQuestionCount
-        ?? dashboard.coachPlan?.questionCount
-        ?? planQuestions.length;
-    const strongCount = dashboard.questionPreparedness?.achievement.strong ?? 0;
-    const strongPercent = totalCount > 0 ? Math.round((strongCount / totalCount) * 100) : 0;
-    const style = { "--dashboard-plan-progress": strongPercent } as CSSProperties;
+    if (!dashboard.coachPlan && !dashboard.questionPreparedness) return null;
 
     return (
         <Surface
             as="section"
-            prominence="glass-raised"
+            prominence="plan"
             className="candidate-dashboard-plan-progress"
             aria-labelledby="candidate-dashboard-plan-progress-title"
-            style={style}
         >
             <header>
-                <h2 id="candidate-dashboard-plan-progress-title">Coach plan progress</h2>
+                <h2 id="candidate-dashboard-plan-progress-title">Coach plan</h2>
                 {dashboard.coachPlan ? (
-                    <button type="button" onClick={onOpenPlan}>
-                        View plan
-                        <ArrowRight size={15} aria-hidden="true" />
+                    <button type="button" aria-label="View Coach Plan" onClick={onOpenPlan}>
+                        <ArrowRight size={20} aria-hidden="true" />
                     </button>
                 ) : null}
             </header>
-            <div className="candidate-dashboard-plan-progress__grid">
-                <section aria-labelledby="candidate-dashboard-overall-label">
-                    <h3 id="candidate-dashboard-overall-label">Overall</h3>
-                    <div
-                        className="candidate-dashboard-plan-gauge"
-                        role="img"
-                        aria-label={`${strongCount} of ${totalCount} questions are Strong`}
-                    >
-                        <svg viewBox="0 0 120 120" aria-hidden="true">
-                            <circle className="candidate-dashboard-plan-gauge__track" cx="60" cy="60" r="48" />
-                            <circle
-                                className="candidate-dashboard-plan-gauge__value"
-                                cx="60"
-                                cy="60"
-                                r="48"
-                                pathLength="100"
-                                strokeDasharray={`${strongPercent} 100`}
-                            />
-                        </svg>
-                        <span>
-                            <strong>{strongCount}</strong>
-                            <small>of {totalCount}</small>
-                        </span>
-                    </div>
-                </section>
-                <section aria-labelledby="candidate-dashboard-questions-label">
-                    <h3 id="candidate-dashboard-questions-label">Questions</h3>
-                    <ol>
-                        {planQuestions.map((question) => {
-                            const preparedness = preparednessByQuestion.get(question.questionKey);
-                            const state = preparedness?.state ?? "not_practiced";
-                            const band = preparedness?.band ?? null;
-                            const isStrong = band === "strong";
-                            return (
-                                <li key={question.questionKey} data-state={state} data-band={band ?? undefined}>
-                                    <span aria-hidden="true">
-                                        {isStrong ? <Check size={13} strokeWidth={2.8} /> : question.questionNumber}
-                                    </span>
-                                    <span>
-                                        <strong>Question {question.questionNumber}</strong>
-                                        <small>{getPreparednessLabel(state, band)}</small>
-                                    </span>
-                                </li>
-                            );
-                        })}
-                    </ol>
-                </section>
-            </div>
+            {dashboard.questionPreparedness ? (
+                <CandidateDashboardPlanDial dashboard={dashboard} />
+            ) : (
+                <CandidateDashboardPlanIgnition dashboard={dashboard} />
+            )}
         </Surface>
+    );
+}
+
+function CandidateDashboardPlanDial({
+    dashboard,
+    decorative = false,
+    showLegend = true,
+}: {
+    dashboard: CandidateDashboardV2ReadModel;
+    decorative?: boolean;
+    showLegend?: boolean;
+}) {
+    const questions = getDashboardPlanDialQuestions(dashboard);
+    const totalCount = dashboard.questionPreparedness?.coverage.canonicalQuestionCount ?? questions.length;
+    const strongCount = dashboard.questionPreparedness?.achievement.strong ?? 0;
+    const summary = `${strongCount} of ${totalCount} questions are Strong. ${questions
+        .map((question) => `Question ${question.questionNumber}: ${getPreparednessLabel(question.state, question.band)}`)
+        .join(". ")}`;
+
+    if (questions.length === 0 || !dashboard.questionPreparedness) return null;
+
+    return (
+        <CandidatePlanDial
+            aria-label={summary}
+            decorative={decorative}
+            questions={questions.map((question) => ({
+                questionKey: question.questionKey,
+                questionNumber: question.questionNumber,
+                state: getPlanDialState(question.state, question.band),
+                stateLabel: getPreparednessLabel(question.state, question.band),
+            }))}
+            showLegend={showLegend}
+        />
+    );
+}
+
+function CandidateDashboardPlanIgnition({ dashboard }: { dashboard: CandidateDashboardV2ReadModel }) {
+    const questions = getDashboardPlanDialQuestions(dashboard);
+    if (questions.length === 0) return null;
+    const recommendedKey = dashboard.practiceDirection.planProgress.questionKeys[0] ?? questions[0].questionKey;
+
+    return (
+        <ol
+            className="candidate-dashboard-plan-ignition"
+            aria-label={`${questions.length}-question Coach Plan. Question ${questions.find((question) => question.questionKey === recommendedKey)?.questionNumber ?? questions[0].questionNumber} is recommended first.`}
+        >
+            {questions.map((question) => (
+                <li key={question.questionKey} data-recommended={question.questionKey === recommendedKey || undefined}>
+                    <span>Q{question.questionNumber}</span>
+                </li>
+            ))}
+        </ol>
+    );
+}
+
+function getDashboardPlanDialQuestions(dashboard: CandidateDashboardV2ReadModel) {
+    const preparednessByQuestion = new Map(
+        dashboard.questionPreparedness?.questions.map((question) => [question.questionKey, question]) ?? [],
+    );
+    const sourceQuestions = dashboard.coachPlan?.questions ?? dashboard.questionPreparedness?.questions ?? [];
+
+    return sourceQuestions.map((question) => {
+        const preparedness = preparednessByQuestion.get(question.questionKey);
+        return {
+            questionKey: question.questionKey,
+            questionNumber: question.questionNumber,
+            state: preparedness?.state ?? "not_practiced" as const,
+            band: preparedness?.band ?? null,
+        };
+    });
+}
+
+function getPlanDialState(
+    state: ReturnType<typeof getDashboardPlanDialQuestions>[number]["state"],
+    band: ReturnType<typeof getDashboardPlanDialQuestions>[number]["band"],
+): CandidatePlanDialState {
+    if (band) return band;
+    if (state === "not_practiced") return "not-practiced";
+    if (state === "incomplete") return "incomplete";
+    if (state === "evaluation_unavailable") return "unavailable";
+    return "unrated";
+}
+
+function CandidateDashboardPracticeNextDialog({
+    dashboard,
+    onClose,
+}: {
+    dashboard: CandidateDashboardV2ReadModel;
+    onClose: () => void;
+}) {
+    const focus = dashboard.practiceDirection.coachGuidedFocus;
+    const question = focus
+        ? resolveDashboardQuestion(dashboard, { questionKey: focus.questionKeys[0] })
+        : null;
+    const dialogRef = useRef<HTMLElement | null>(null);
+    const closeRef = useRef<HTMLButtonElement | null>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+
+    useLayoutEffect(() => {
+        previousFocusRef.current = document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+        closeRef.current?.focus();
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                onClose();
+                return;
+            }
+            if (event.key !== "Tab" || !dialogRef.current) return;
+            const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
+                'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+            ));
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (!first || !last) return;
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+
+        document.addEventListener("keydown", handleKeyDown);
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+            document.body.style.overflow = previousOverflow;
+            window.requestAnimationFrame(() => previousFocusRef.current?.focus());
+        };
+    }, [onClose]);
+
+    if (!focus) return null;
+
+    return (
+        <div
+            className="candidate-coach-update-backdrop candidate-dashboard-practice-next-backdrop"
+            role="presentation"
+            onPointerDown={(event) => {
+                if (event.target === event.currentTarget) onClose();
+            }}
+        >
+            <section
+                ref={dialogRef}
+                className="candidate-coach-update-dialog candidate-dashboard-practice-next-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="candidate-dashboard-practice-next-dialog-title"
+            >
+                <span className="candidate-dashboard-practice-next-dialog__grabber" aria-hidden="true" />
+                <header className="candidate-dashboard-practice-next-dialog__header">
+                    <div>
+                        <span>Practice next</span>
+                        <h2 id="candidate-dashboard-practice-next-dialog-title">One-question round</h2>
+                    </div>
+                    <button ref={closeRef} type="button" aria-label="Close one-question round" onClick={onClose}>
+                        <X size={20} aria-hidden="true" />
+                    </button>
+                </header>
+                <div className="candidate-dashboard-practice-next-dialog__body">
+                    <CandidateDashboardQuestionReference question={question} />
+                    <section className="candidate-dashboard-practice-next-dialog__guidance" aria-labelledby="candidate-dashboard-practice-next-guidance-title">
+                        <span>Try next</span>
+                        <h3 id="candidate-dashboard-practice-next-guidance-title">{focus.title}</h3>
+                    </section>
+                    <CandidateQuestionPracticeActions
+                        pointer={{
+                            sourceCandidatePracticeSessionId: focus.candidatePracticeSessionId,
+                            sourceQuestionKey: focus.sourceQuestionKey,
+                        }}
+                        practiceNowHref={focus.href}
+                    />
+                </div>
+            </section>
+        </div>
     );
 }
 
@@ -765,19 +1163,37 @@ function resolveDashboardQuestion(
             ? question.questionKey === selector.questionKey
             : question.questionNumber === selector.questionNumber
     ));
-    const questionNumber = planQuestion?.questionNumber ?? preparednessQuestion?.questionNumber ?? selector.questionNumber;
+    const reviewQuestion = dashboard.coachUpdateDetail?.items.find((question) => (
+        selector.questionKey
+            ? question.questionKey === selector.questionKey
+            : question.questionNumber === selector.questionNumber
+    ));
+    const questionNumber = planQuestion?.questionNumber
+        ?? preparednessQuestion?.questionNumber
+        ?? reviewQuestion?.questionNumber
+        ?? selector.questionNumber;
     if (!questionNumber) return null;
 
     return {
-        questionKey: planQuestion?.questionKey ?? preparednessQuestion?.questionKey ?? selector.questionKey ?? null,
+        questionKey: planQuestion?.questionKey
+            ?? preparednessQuestion?.questionKey
+            ?? reviewQuestion?.questionKey
+            ?? selector.questionKey
+            ?? null,
         questionNumber,
         totalCount: dashboard.coachPlan?.questionCount
             ?? dashboard.questionPreparedness?.coverage.canonicalQuestionCount
+            ?? dashboard.coachUpdateDetail?.questionCount
             ?? dashboard.activeRound?.questionCount
             ?? questionNumber,
         categoryLabel: planQuestion?.categoryLabel
-            ?? (preparednessQuestion ? formatCategoryLabel(preparednessQuestion.category) : ""),
-        questionText: planQuestion?.questionText ?? preparednessQuestion?.questionText ?? null,
+            ?? (preparednessQuestion ? formatCategoryLabel(preparednessQuestion.category) : null)
+            ?? reviewQuestion?.category
+            ?? "",
+        questionText: planQuestion?.questionText
+            ?? preparednessQuestion?.questionText
+            ?? reviewQuestion?.questionText
+            ?? null,
     };
 }
 

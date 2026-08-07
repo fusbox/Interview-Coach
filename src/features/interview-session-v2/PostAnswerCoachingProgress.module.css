@@ -29,15 +29,6 @@
     gap: var(--space-4);
 }
 
-.avatar.avatar {
-    width: 3rem;
-    height: 3rem;
-    flex: 0 0 auto;
-    border-color: rgb(var(--primary) / 0.14);
-    background: rgb(var(--primary-wash));
-    box-shadow: inset 0 1px 0 rgb(var(--surface-base) / 0.9);
-}
-
 .header > div {
     display: grid;
     min-width: 0;
@@ -144,7 +135,6 @@
 
 @media (max-width: 640px) {
     .backdrop {
-        align-items: end;
         padding: var(--space-3);
     }
 

@@ -1,11 +1,25 @@
 import { describe, expect, it } from "vitest";
 
 import { createCandidateQuestionPlan } from "@/features/candidate-session-v2/candidate-question-plan";
+import type { CandidateAnswerAttemptRecord } from "@/features/candidate-session-v2/candidate-answer-history";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import { createCandidateAnswerAnalysisProviderResultFixture } from "@/features/candidate-session-v2/candidate-answer-analysis-test-fixture";
+import type {
+    CriterionAppraisal,
+    UniversalCriterionId,
+} from "@/features/evaluation-v2/evidence-first-evaluator-contract";
 
 import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
+import type { CandidateQuestionPreparednessAcceptedRun } from "./candidate-question-preparedness-progress";
 import { createCandidateDashboardV2ReadModel } from "./candidate-dashboard-read-model";
+
+const criterionIds: UniversalCriterionId[] = [
+    "answer_focus",
+    "organization",
+    "evidence_specificity",
+    "role_skill_signal",
+    "impact_judgment_takeaway",
+];
 
 describe("candidate dashboard V2 read model", () => {
     it("derives dashboard state from completed candidate practice sessions at read time", () => {
@@ -422,12 +436,45 @@ describe("candidate dashboard V2 read model", () => {
                     lifecycleState: "requested",
                 }),
             ],
+            now: new Date("2026-07-11T12:01:00.000Z"),
         });
 
         expect(model.coachUpdateState).toEqual({
             status: "candidate_coach_update_pending",
             candidatePracticeSessionId: "profile-session",
             requestedAt: "2026-07-11T12:00:01.000Z",
+        });
+        expect(model.latestCoachUpdate).toBeNull();
+        expect(model.coachUpdateDetail).toBeNull();
+    });
+
+    it("projects a requested Coach Update beyond its claim lease as recoverably unavailable", () => {
+        const roleProfileId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+        const session = createCompletedSession({
+            candidatePracticeSessionId: "profile-session",
+            completedAt: "2026-07-11T12:00:00.000Z",
+            roleProfileId,
+            answerText: "I like keeping materials organized.",
+            focus: "Add one concrete result.",
+        });
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            selectedRoleProfileId: roleProfileId,
+            practiceSessions: [session],
+            coachUpdateArtifacts: [
+                createCoachUpdateArtifact({
+                    roleProfileId,
+                    sourceSessionId: "profile-session",
+                    lifecycleState: "requested",
+                }),
+            ],
+            now: new Date("2026-07-11T12:02:01.000Z"),
+        });
+
+        expect(model.coachUpdateState).toEqual({
+            status: "candidate_coach_update_unavailable",
+            candidatePracticeSessionId: "profile-session",
+            reason: "generation_failed",
         });
         expect(model.latestCoachUpdate).toBeNull();
         expect(model.coachUpdateDetail).toBeNull();
@@ -525,6 +572,43 @@ describe("candidate dashboard V2 read model", () => {
                 questionKeys: ["slot-1"],
                 href: "/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=partial-session&questionKey=slot-1",
             },
+        });
+    });
+
+    it("ranks coached questions by latest preparedness posture and aligns every Practice Next projection", () => {
+        const session = createThreeQuestionCompletedSession();
+        const attempts = [
+            createPreparednessAttempt("attempt-1", session.candidatePracticeSessionId, "slot-1", 0),
+            createPreparednessAttempt("attempt-2", session.candidatePracticeSessionId, "slot-2", 1),
+            createPreparednessAttempt("attempt-3", session.candidatePracticeSessionId, "slot-3", 2),
+        ];
+        const acceptedRuns = [
+            createPreparednessRun("attempt-1", "run-1", "strong"),
+            createPreparednessRun("attempt-2", "run-2", "emerging"),
+            createPreparednessRun("attempt-3", "run-3", "clear"),
+        ];
+
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            practiceSessions: [session],
+            answerAttempts: attempts,
+            acceptedEvaluationRuns: acceptedRuns,
+        });
+
+        expect(model.practiceDirection.coachGuidedFocus).toMatchObject({
+            title: "Strengthen question 2.",
+            sourceQuestionKey: "slot-2",
+            questionKeys: ["slot-2"],
+            href: `/candidate/practice/ready?intent=coach-update-feedback-focus&fromSession=${session.candidatePracticeSessionId}&questionKey=slot-2`,
+        });
+        expect(model.practiceNext).toMatchObject({
+            source: "coaching_focus",
+            label: "Strengthen question 2.",
+            questionKeys: ["slot-2"],
+        });
+        expect(model.coachingLoop.feedforward).toMatchObject({
+            title: "Strengthen question 2.",
+            questionKeys: ["slot-2"],
         });
     });
 
@@ -931,6 +1015,132 @@ function createCompletedSession({
             nextRoute: "/candidate/dashboard",
         },
     };
+}
+
+function createThreeQuestionCompletedSession(): CandidatePracticeSessionRecord {
+    const session = createCompletedSession({
+        candidatePracticeSessionId: "three-question-session",
+        completedAt: "2026-07-11T12:00:00.000Z",
+        answerText: "Answer 1.",
+        focus: "Strengthen question 1.",
+    });
+    const plan = createCandidateQuestionPlan({
+        interviewStage: "first_interview",
+        questionCount: 3,
+    });
+    session.questionPlanSnapshot = plan;
+    session.questionWordingSnapshot = {
+        status: "questions_worded",
+        questions: plan.slots.map((slot) => ({
+            slotId: slot.id,
+            index: slot.index,
+            category: slot.category,
+            questionText: `Question ${slot.index + 1}`,
+        })),
+    };
+    for (const slot of plan.slots) {
+        const questionNumber = slot.index + 1;
+        session.answerSubmissions[slot.id] = {
+            slotId: slot.id,
+            questionIndex: slot.index,
+            mode: "text",
+            text: `Answer ${questionNumber}.`,
+            submittedAt: `2026-07-11T11:3${questionNumber}:00.000Z`,
+            status: "pending_analysis",
+        };
+        session.answerAnalysisSnapshots[slot.id] = createCandidateAnswerAnalysisProviderResultFixture({
+            analyzedAt: `2026-07-11T11:4${questionNumber}:00.000Z`,
+            answer: {
+                slotId: slot.id,
+                questionIndex: slot.index,
+            },
+            coachFeedback: {
+                acknowledgement: `Acknowledgement ${questionNumber}.`,
+                observation: `Observation ${questionNumber}.`,
+                nextPracticeFocus: `Strengthen question ${questionNumber}.`,
+            },
+            evidenceFirst: {
+                candidateFeedback: {
+                    biggestUpgrade: `Strengthen question ${questionNumber}.`,
+                },
+            },
+        });
+    }
+    session.progress = { status: "completed", currentQuestionIndex: 2 };
+    session.completionSnapshot = {
+        status: "candidate_session_completed",
+        audience: "candidate_led",
+        sessionId: session.candidatePracticeSessionId,
+        completedAt: "2026-07-11T12:00:00.000Z",
+        finalProgress: { status: "completed", currentQuestionIndex: 2 },
+        questionCount: 3,
+        answeredCount: 3,
+        coachedCount: 3,
+        answeredQuestionKeys: ["slot-1", "slot-2", "slot-3"],
+        coachedQuestionKeys: ["slot-1", "slot-2", "slot-3"],
+        skippedOrUnansweredQuestionKeys: [],
+        nextRoute: "/candidate/dashboard",
+    };
+    return session;
+}
+
+function createPreparednessAttempt(
+    candidateAnswerAttemptId: string,
+    candidatePracticeSessionId: string,
+    questionSlotId: string,
+    questionIndex: number,
+): CandidateAnswerAttemptRecord {
+    const submittedAt = `2026-07-11T11:5${questionIndex}:00.000Z`;
+    return {
+        candidateAnswerAttemptId,
+        candidatePracticeSessionId,
+        candidateProfileId: "candidate-1",
+        questionSlotId,
+        questionIndex,
+        attemptNumber: 1,
+        trigger: "initial_submit",
+        supersedesCandidateAnswerAttemptId: null,
+        mode: "text",
+        answerText: `Answer ${questionIndex + 1}.`,
+        submittedAt,
+        idempotencyKey: `key-${candidateAnswerAttemptId}`,
+        payloadFingerprint: "a".repeat(64),
+        sourceVoiceTranscriptionRunId: null,
+        voiceSubmissionPath: null,
+        voiceTranscriptEdited: null,
+        createdAt: submittedAt,
+    };
+}
+
+function createPreparednessRun(
+    candidateAnswerAttemptId: string,
+    candidateAnswerEvaluationRunId: string,
+    band: "emerging" | "clear" | "strong",
+): CandidateQuestionPreparednessAcceptedRun {
+    return {
+        candidateAnswerAttemptId,
+        candidateAnswerEvaluationRunId,
+        completedAt: "2026-07-11T11:59:00.000Z",
+        extraction: {
+            answerUsability: { status: "usable", reasonCode: "fixture_usable" },
+            technicalAccuracy: {
+                status: "not_assessed",
+                referenceConceptIds: [],
+                evidenceSpanIds: [],
+            },
+        },
+        criteria: createRatedCriteria(band),
+    };
+}
+
+function createRatedCriteria(band: "emerging" | "clear" | "strong"): CriterionAppraisal[] {
+    return criterionIds.map((criterionId) => ({
+        criterionId,
+        applicability: "observed",
+        band,
+        evidenceSpanIds: [],
+        reasonCode: `fixture_${criterionId}`,
+    }));
 }
 
 function createCoachUpdateArtifact({

@@ -96,11 +96,21 @@
 }
 
 .drawer {
+    --assistance-boundary-distance: calc(100svh - var(--gap-cluster));
+    --assistance-viewport-limit: calc(
+        100svh - var(--gap-cluster) - var(--gap-cluster)
+    );
+    --assistance-max-height: min(
+        var(--assistance-viewport-limit),
+        max(0px, calc(var(--assistance-boundary-distance) - var(--gap-section)))
+    );
+
     position: fixed;
     z-index: var(--z-modal);
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;
+    max-height: var(--assistance-max-height);
     border: 1px solid rgb(var(--border));
     border-radius: var(--radius-panel);
     background: rgb(var(--surface));
@@ -211,8 +221,8 @@
 
 .drawerBody {
     display: grid;
-    gap: var(--space-3);
-    padding: var(--space-4);
+    gap: var(--space-6);
+    padding: var(--space-6);
 }
 
 .intro {
@@ -226,7 +236,7 @@
 .guidance,
 .example {
     display: grid;
-    gap: var(--space-2);
+    gap: var(--space-3);
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -246,9 +256,9 @@
 .guidance h3,
 .example h3 {
     color: rgb(var(--primary));
-    font-size: var(--type-label-size);
+    font-size: var(--type-title-size);
     font-weight: var(--font-weight-bold);
-    line-height: var(--type-label-line);
+    line-height: var(--type-title-line);
 }
 
 .drawer[data-panel="hints"] .guidance h3 {
@@ -260,9 +270,9 @@
     max-width: 70ch;
     overflow-wrap: anywhere;
     color: rgb(var(--foreground));
-    font-size: var(--type-body-sm-size);
-    line-height: 1.55;
-    text-wrap: pretty;
+    font-size: var(--type-body-md-size);
+    line-height: var(--type-body-md-line);
+    text-wrap: wrap;
 }
 
 .example p {
@@ -271,12 +281,18 @@
 
 .guidance ul {
     display: grid;
-    gap: var(--space-2);
+    gap: var(--space-3);
     margin: 0;
-    padding-inline-start: var(--space-5);
+    padding-inline-start: var(--space-6);
     color: rgb(var(--muted));
-    font-size: var(--type-body-sm-size);
+    font-size: var(--type-body-md-size);
     line-height: 1.6;
+}
+
+.drawer[data-panel="hints"] .guidance ul,
+.drawer[data-panel="strong_response"] .example p {
+    font-size: var(--type-body-lg-size);
+    line-height: var(--type-body-lg-line);
 }
 
 .guidance li {
@@ -298,6 +314,8 @@
     align-items: start;
     gap: var(--space-3);
     color: rgb(var(--muted));
+    font-size: var(--type-body-md-size);
+    line-height: var(--type-body-md-line);
 }
 
 .loading p,
@@ -371,25 +389,21 @@
 
 @keyframes assistance-panel-forward {
     from {
-        opacity: 0;
-        transform: translateX(1rem);
+        transform: translate3d(var(--space-8), 0, 0);
     }
 
     to {
-        opacity: 1;
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
 @keyframes assistance-panel-backward {
     from {
-        opacity: 0;
-        transform: translateX(-1rem);
+        transform: translate3d(calc(0px - var(--space-8)), 0, 0);
     }
 
     to {
-        opacity: 1;
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
@@ -401,7 +415,8 @@
     }
 
     .drawerBody {
-        padding: var(--space-3);
+        gap: var(--space-5);
+        padding: var(--space-5);
     }
 }
 

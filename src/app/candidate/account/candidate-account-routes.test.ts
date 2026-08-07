@@ -74,6 +74,27 @@ describe("candidate account routes", () => {
         }
     });
 
+    it("rejects malformed registration contact fields before calling the service", async () => {
+        for (const invalidContact of [
+            { email: "candidate@example" },
+            { phone: "312-CALL-NOW" },
+            { postalCode: "60601-1234" },
+        ]) {
+            const register = vi.fn();
+            const response = await createCandidateRegisterRouteHandler({
+                register,
+                rateLimit: allowRateLimit,
+            })(new NextRequest(`${origin}/candidate/account/register`, {
+                method: "POST",
+                headers: trustedHeaders,
+                body: JSON.stringify({ ...validRegistration, ...invalidContact }),
+            }));
+
+            expect(response.status).toBe(400);
+            expect(register).not.toHaveBeenCalled();
+        }
+    });
+
     it("returns a development verification URL only when supplied by the service", async () => {
         const response = await createCandidateRegisterRouteHandler({
             register: vi.fn().mockResolvedValue({

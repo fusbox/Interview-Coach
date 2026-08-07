@@ -1,10 +1,9 @@
 "use client";
 
 import {
+    ArrowRight,
     Check,
-    ChevronRight,
     Eye,
-    X,
 } from "lucide-react";
 import {
     useEffect,
@@ -15,6 +14,11 @@ import {
     type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 
+import {
+    WorkflowTimeline,
+    WorkflowTimelineStep,
+} from "@/components/ui/WorkflowTimeline";
+import { CandidateOpenedSurfaceHeader } from "@/features/candidate-v2/CandidateOpenedSurfaceHeader";
 import type {
     CandidateCoachPlanCategoryReference,
     CandidateCoachPlanQuestionReference,
@@ -26,19 +30,49 @@ import type {
     CandidateQuestionPreparednessProgress,
 } from "./candidate-question-preparedness-progress";
 import { CandidateAnswerReview } from "./CandidateAnswerReview";
+import { CandidatePlanDial } from "./CandidatePlanDial";
 import { CandidateQuestionPracticeActions } from "./CandidatePracticeNextActions";
+import {
+    CandidateNextRoundReviewFooter,
+    useCandidateNextRoundBuilder,
+} from "./CandidateNextRoundBuilderExperience";
 
 type CoachPlanView = "questions" | "categories";
+type CoachPlanPatternState = "not-practiced" | "emerging" | "clear" | "strong" | "incomplete" | "unavailable" | "unrated";
+
+const coachPlanPatternStateOrder: CoachPlanPatternState[] = [
+    "not-practiced",
+    "emerging",
+    "clear",
+    "strong",
+    "incomplete",
+    "unavailable",
+    "unrated",
+];
+
+const coachPlanPatternStateLabel: Record<CoachPlanPatternState, string> = {
+    "not-practiced": "Not practiced",
+    emerging: "Emerging",
+    clear: "Clear",
+    strong: "Strong",
+    incomplete: "Incomplete",
+    unavailable: "Unavailable",
+    unrated: "Prep state unavailable",
+};
 
 export function CandidateCoachPlanReferenceDialog({
     answerReviews = [],
     plan,
     preparedness = null,
+    initialPlanIncomplete = false,
+    initialPlanAnsweredQuestionKeys = [],
     onClose,
 }: {
     answerReviews?: CandidateCoachUpdateQuestionDetail[];
     plan: CandidateCoachPlanReference;
     preparedness?: CandidateQuestionPreparednessProgress | null;
+    initialPlanIncomplete?: boolean;
+    initialPlanAnsweredQuestionKeys?: string[];
     onClose: () => void;
 }) {
     const [view, setView] = useState<CoachPlanView>("questions");
@@ -47,6 +81,7 @@ export function CandidateCoachPlanReferenceDialog({
     const [revealedQuestionKeys, setRevealedQuestionKeys] = useState<Set<string>>(() => new Set());
     const dialogRef = useRef<HTMLElement | null>(null);
     const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+    const backdropRef = useRef<HTMLDivElement | null>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
     const selectedQuestion = plan.questions[selectedQuestionIndex] ?? plan.questions[0] ?? null;
     const activeCategory = plan.categories.find((category) => category.category === selectedCategory)
@@ -56,8 +91,33 @@ export function CandidateCoachPlanReferenceDialog({
         preparedness?.questions.map((question) => [question.questionKey, question]) ?? [],
     ), [preparedness]);
     const answerReviewByQuestion = useMemo(() => new Map(
-        answerReviews.map((item) => [item.questionKey, item]),
+        answerReviews.map((item) => [item.canonicalQuestion.questionKey, item]),
     ), [answerReviews]);
+    const planDialQuestions = useMemo(() => plan.questions.map((question) => {
+        const presentation = getQuestionPresentation(
+            question,
+            preparednessByQuestion.get(question.questionKey),
+        );
+        return {
+            questionKey: question.questionKey,
+            questionNumber: question.questionNumber,
+            state: presentation.key,
+            stateLabel: presentation.label,
+        };
+    }), [plan.questions, preparednessByQuestion]);
+    const strongQuestionCount = planDialQuestions.filter((question) => question.state === "strong").length;
+    const nextRoundBuilder = useCandidateNextRoundBuilder();
+    const isBuilderOpen = Boolean(nextRoundBuilder?.isOpen);
+    const isBuilderOpenRef = useRef(isBuilderOpen);
+
+    useEffect(() => {
+        isBuilderOpenRef.current = isBuilderOpen;
+        const backdrop = backdropRef.current;
+        if (!backdrop) return;
+        if (isBuilderOpen) backdrop.setAttribute("inert", "");
+        else backdrop.removeAttribute("inert");
+        return () => backdrop.removeAttribute("inert");
+    }, [isBuilderOpen]);
 
     useEffect(() => {
         previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -66,6 +126,7 @@ export function CandidateCoachPlanReferenceDialog({
         closeButtonRef.current?.focus();
 
         const handleKeyDown = (event: KeyboardEvent) => {
+            if (isBuilderOpenRef.current) return;
             if (event.key === "Escape") {
                 event.preventDefault();
                 onClose();
@@ -141,8 +202,10 @@ export function CandidateCoachPlanReferenceDialog({
 
     return (
         <div
+            ref={backdropRef}
             className="candidate-coach-plan-backdrop"
             data-testid="coach-plan-backdrop"
+            aria-hidden={isBuilderOpen || undefined}
             onPointerDown={(event) => {
                 if (event.target === event.currentTarget) onClose();
             }}
@@ -154,114 +217,84 @@ export function CandidateCoachPlanReferenceDialog({
                 aria-modal="true"
                 aria-labelledby="candidate-coach-plan-title"
             >
-                <header className="candidate-coach-plan-dialog__header">
-                    <div>
-                        <p className="type-eyebrow">Coach plan</p>
-                        <h2 id="candidate-coach-plan-title">{plan.targetRole}</h2>
-                    </div>
-                    <button ref={closeButtonRef} type="button" onClick={onClose} aria-label="Close Coach Plan">
-                        <X size={19} aria-hidden="true" />
-                    </button>
-                </header>
-
-                <div className="candidate-coach-plan-dialog__body">
-                    <section className="candidate-coach-plan-purpose" aria-labelledby="candidate-coach-plan-purpose-title">
-                        <p className="type-eyebrow">Why this plan</p>
-                        <h3 id="candidate-coach-plan-purpose-title">
-                            Prepare for the range of your {plan.stage.label.toLowerCase()}.
-                        </h3>
-                        <p>
-                            {plan.questionCount} questions cover {formatCategoryList(plan.categories)} for {plan.targetRole}.
-                        </p>
-                    </section>
-
-                    <div className="candidate-coach-plan-view-tabs" role="tablist" aria-label="Coach plan views">
-                        {(["questions", "categories"] as const).map((item) => (
-                            <button
-                                key={item}
-                                id={`candidate-coach-plan-view-${item}`}
-                                type="button"
-                                role="tab"
-                                aria-selected={view === item}
-                                aria-controls={`candidate-coach-plan-panel-${item}`}
-                                tabIndex={view === item ? 0 : -1}
-                                onClick={() => selectView(item)}
-                                onKeyDown={(event) => handleViewKeyDown(event, item)}
-                            >
-                                {item === "questions" ? "Questions" : "Categories"}
-                            </button>
-                        ))}
-                    </div>
-
-                    {view === "questions" ? (
-                        <div
-                            id="candidate-coach-plan-panel-questions"
-                            className="candidate-coach-plan-question-view"
-                            role="tabpanel"
-                            aria-labelledby="candidate-coach-plan-view-questions"
-                        >
-                            <div
-                                className="candidate-coach-plan-question-tabs"
-                                role="tablist"
-                                aria-label="Coach plan questions"
-                                style={{ "--coach-plan-question-count": plan.questions.length } as CSSProperties}
-                            >
-                                {plan.questions.map((question, index) => {
-                                    const state = getQuestionPresentation(
-                                        question,
-                                        preparednessByQuestion.get(question.questionKey),
-                                    );
-                                    const isSelected = selectedQuestionIndex === index;
-                                    return (
-                                        <button
-                                            key={question.questionKey}
-                                            id={`candidate-coach-plan-question-${index}`}
-                                            type="button"
-                                            role="tab"
-                                            aria-selected={isSelected}
-                                            aria-controls="candidate-coach-plan-question-panel"
-                                            aria-label={`Question ${question.questionNumber}: ${state.label}`}
-                                            tabIndex={isSelected ? 0 : -1}
-                                            onClick={() => selectQuestion(index)}
-                                            onKeyDown={(event) => handleQuestionKeyDown(event, index)}
-                                        >
-                                            <span>Q{question.questionNumber}</span>
-                                            <span className="candidate-coach-plan-question-tabs__state" data-state={state.key} aria-hidden="true">
-                                                {state.key === "strong" ? <Check size={8} strokeWidth={3.2} /> : null}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {selectedQuestion ? (
-                                <QuestionDetail
-                                    answerReview={answerReviewByQuestion.get(selectedQuestion.questionKey) ?? null}
-                                    isRevealed={selectedQuestion.evidenceStatus === "practiced"
-                                        || revealedQuestionKeys.has(selectedQuestion.questionKey)}
-                                    plan={plan}
-                                    preparedness={preparednessByQuestion.get(selectedQuestion.questionKey)}
-                                    question={selectedQuestion}
-                                    onReveal={() => setRevealedQuestionKeys((current) => (
-                                        new Set(current).add(selectedQuestion.questionKey)
-                                    ))}
-                                />
-                            ) : null}
+                <CandidateOpenedSurfaceHeader
+                    className="candidate-coach-plan-dialog__header"
+                    closeButtonRef={closeButtonRef}
+                    closeLabel="Close Coach Plan"
+                    context="Coach plan"
+                    navigation={(
+                        <div className="candidate-coach-plan-view-tabs" role="tablist" aria-label="Coach plan views">
+                            {(["questions", "categories"] as const).map((item) => (
+                                <button
+                                    key={item}
+                                    id={`candidate-coach-plan-view-${item}`}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={view === item}
+                                    aria-controls={item === "questions"
+                                        ? "candidate-coach-plan-question-panel"
+                                        : "candidate-coach-plan-panel-categories"}
+                                    tabIndex={view === item ? 0 : -1}
+                                    onClick={() => selectView(item)}
+                                    onKeyDown={(event) => handleViewKeyDown(event, item)}
+                                >
+                                    {item === "questions" ? "Questions" : "Categories"}
+                                </button>
+                            ))}
                         </div>
-                    ) : (
+                    )}
+                    onClose={onClose}
+                    title={plan.targetRole}
+                    titleId="candidate-coach-plan-title"
+                />
+
+                <div className="candidate-coach-plan-dialog__body candidate-coach-plan-workspace">
+                    <aside className="candidate-coach-plan-map" aria-label="Coach plan map">
+                        <CandidatePlanDial
+                            aria-label={`${strongQuestionCount} of ${plan.questionCount} questions are Strong. Question states are shown clockwise from question 1.`}
+                            className="candidate-coach-plan-map__dial is-interactive"
+                            interactive={view === "questions"}
+                            layout="reference"
+                            material="neutral"
+                            nodeIdPrefix="candidate-coach-plan-question"
+                            onSelectQuestion={(index) => selectQuestion(index)}
+                            onQuestionKeyDown={handleQuestionKeyDown}
+                            panelId="candidate-coach-plan-question-panel"
+                            questions={planDialQuestions}
+                            selectedQuestionIndex={selectedQuestionIndex}
+                            showQuestionIdentityOnStrong
+                        />
+                    </aside>
+
+                    {view === "questions" && selectedQuestion ? (
+                        <QuestionDetail
+                            answerReview={answerReviewByQuestion.get(selectedQuestion.questionKey) ?? null}
+                            isRevealed={selectedQuestion.evidenceStatus === "practiced"
+                                || revealedQuestionKeys.has(selectedQuestion.questionKey)}
+                            plan={plan}
+                            preparedness={preparednessByQuestion.get(selectedQuestion.questionKey)}
+                            question={selectedQuestion}
+                            questionIndex={selectedQuestionIndex}
+                            initialPlanIncomplete={initialPlanIncomplete}
+                            initialPlanQuestionAnswered={initialPlanAnsweredQuestionKeys.includes(
+                                selectedQuestion.questionKey,
+                            )}
+                            onReveal={() => setRevealedQuestionKeys((current) => (
+                                new Set(current).add(selectedQuestion.questionKey)
+                            ))}
+                        />
+                    ) : null}
+
+                    {view === "categories" ? (
                         <CategoryView
                             activeCategory={activeCategory}
                             plan={plan}
                             preparednessByQuestion={preparednessByQuestion}
-                            revealedQuestionKeys={revealedQuestionKeys}
                             onSelectCategory={setSelectedCategory}
-                            onSelectQuestion={(questionKey) => {
-                                const index = plan.questions.findIndex((question) => question.questionKey === questionKey);
-                                if (index >= 0) selectQuestion(index, true);
-                            }}
                         />
-                    )}
+                    ) : null}
                 </div>
+                <CandidateNextRoundReviewFooter className="candidate-next-round-review-footer--sheet" />
             </section>
         </div>
     );
@@ -274,6 +307,9 @@ function QuestionDetail({
     plan,
     preparedness,
     question,
+    questionIndex,
+    initialPlanIncomplete,
+    initialPlanQuestionAnswered,
 }: {
     answerReview: CandidateCoachUpdateQuestionDetail | null;
     isRevealed: boolean;
@@ -281,16 +317,19 @@ function QuestionDetail({
     plan: CandidateCoachPlanReference;
     preparedness?: CandidateQuestionPreparednessItem;
     question: CandidateCoachPlanQuestionReference;
+    questionIndex: number;
+    initialPlanIncomplete: boolean;
+    initialPlanQuestionAnswered: boolean;
 }) {
     const category = plan.categories.find((item) => item.category === question.category) ?? null;
     const state = getQuestionPresentation(question, preparedness);
 
     return (
         <section
-            className="candidate-coach-plan-question-panel"
+            className="candidate-coach-plan-question-panel candidate-coach-plan-detail"
             id="candidate-coach-plan-question-panel"
             role="tabpanel"
-            aria-labelledby={`candidate-coach-plan-question-${question.questionNumber - 1}`}
+            aria-labelledby={`candidate-coach-plan-question-${questionIndex}`}
         >
             <header>
                 <div>
@@ -307,20 +346,31 @@ function QuestionDetail({
             {isRevealed ? (
                 <>
                     {category ? (
-                        <div className="candidate-coach-plan-question-guide" aria-label={`How to build answer ${question.questionNumber}`}>
-                            {category.teaching.answerShape.map((item, index) => (
-                                <section key={item}>
-                                    <span>{index + 1}</span>
-                                    <p>{item}</p>
-                                </section>
-                            ))}
+                        <section className="candidate-coach-plan-guidance surface-plan" aria-label="Answer guidance">
+                            <WorkflowTimeline
+                                aria-label={`Answer shape for question ${question.questionNumber}`}
+                                className="candidate-coach-plan-answer-map"
+                            >
+                                {category.teaching.answerShape.map((item, index) => (
+                                    <WorkflowTimelineStep
+                                        key={item}
+                                        nodeClassName="on-color-glass"
+                                        number={index + 1}
+                                        state="upcoming"
+                                        title={item}
+                                    >
+                                        <p>{item}</p>
+                                    </WorkflowTimelineStep>
+                                ))}
+                            </WorkflowTimeline>
+
                             {category.teaching.watchFor[0] ? (
-                                <aside>
+                                <aside className="candidate-coach-plan-watch on-color-glass">
                                     <strong>Watch for</strong>
                                     <p>{category.teaching.watchFor[0]}</p>
                                 </aside>
                             ) : null}
-                        </div>
+                        </section>
                     ) : null}
 
                     {answerReview ? (
@@ -330,14 +380,24 @@ function QuestionDetail({
                         </details>
                     ) : null}
 
-                    {question.questionText ? (
+                    {question.questionText && (!initialPlanIncomplete || !initialPlanQuestionAnswered) ? (
                         <div className="candidate-coach-plan-question-actions">
-                            <CandidateQuestionPracticeActions
-                                pointer={{
-                                    rootCandidatePracticeSessionId: plan.source.baselineCandidatePracticeSessionId,
-                                    rootQuestionKey: question.questionKey,
-                                }}
-                            />
+                            {initialPlanIncomplete ? (
+                                <a
+                                    className="candidate-question-practice-actions__primary"
+                                    href={`/candidate/session/${encodeURIComponent(plan.source.baselineCandidatePracticeSessionId)}?pace=one&question=${encodeURIComponent(question.questionKey)}`}
+                                >
+                                    Practice this now
+                                    <ArrowRight size={16} aria-hidden="true" />
+                                </a>
+                            ) : (
+                                <CandidateQuestionPracticeActions
+                                    pointer={{
+                                        rootCandidatePracticeSessionId: plan.source.baselineCandidatePracticeSessionId,
+                                        rootQuestionKey: question.questionKey,
+                                    }}
+                                />
+                            )}
                         </div>
                     ) : null}
                 </>
@@ -357,116 +417,147 @@ function QuestionDetail({
 function CategoryView({
     activeCategory,
     onSelectCategory,
-    onSelectQuestion,
     plan,
     preparednessByQuestion,
-    revealedQuestionKeys,
 }: {
     activeCategory: CandidateCoachPlanCategoryReference | null;
     onSelectCategory: (category: CandidateCoachPlanCategoryReference["category"]) => void;
-    onSelectQuestion: (questionKey: string) => void;
     plan: CandidateCoachPlanReference;
     preparednessByQuestion: Map<string, CandidateQuestionPreparednessItem>;
-    revealedQuestionKeys: Set<string>;
 }) {
     if (!activeCategory) return null;
-    const categoryQuestions = plan.questions.filter((question) => question.category === activeCategory.category);
-    const strongCount = categoryQuestions.filter((question) => {
-        const item = preparednessByQuestion.get(question.questionKey);
-        return item?.state === "rated" && item.band === "strong";
-    }).length;
-    const hasPreparedness = categoryQuestions.some((question) => preparednessByQuestion.has(question.questionKey));
+    const rows = plan.categories.map((category) => {
+        const questions = plan.questions
+            .filter((question) => question.category === category.category)
+            .map((question) => ({
+                question,
+                state: getQuestionPresentation(
+                    question,
+                    preparednessByQuestion.get(question.questionKey),
+                ).key,
+            }));
+        return {
+            category,
+            questions,
+            isUnavailable: questions.length !== category.plannedCount,
+        };
+    });
+    const visibleStates = coachPlanPatternStateOrder.filter((state) => rows.some((row) => (
+        (row.isUnavailable && state === "unavailable")
+        || (!row.isUnavailable && row.questions.some((question) => question.state === state))
+    )));
+    const gridStyle = { "--pattern-state-count": Math.max(1, visibleStates.length) } as CSSProperties;
+    const patternSummary = rows.map((row) => {
+        if (row.isUnavailable) return `${row.category.label}: unavailable`;
+        return `${row.category.label}: ${row.questions
+            .map(({ question, state }) => `question ${question.questionNumber} ${coachPlanPatternStateLabel[state]}`)
+            .join(", ")}`;
+    }).join(". ");
 
     return (
-        <div
+        <section
             id="candidate-coach-plan-panel-categories"
-            className="candidate-coach-plan-category-view"
+            className="candidate-coach-plan-category-view candidate-coach-plan-detail candidate-coach-plan-detail--categories"
             role="tabpanel"
             aria-labelledby="candidate-coach-plan-view-categories"
         >
-            <div className="candidate-coach-plan-category-list" aria-label="Plan categories">
-                {plan.categories.map((category) => {
-                    const questions = plan.questions.filter((question) => question.category === category.category);
-                    const categoryStrong = questions.filter((question) => {
-                        const item = preparednessByQuestion.get(question.questionKey);
-                        return item?.state === "rated" && item.band === "strong";
-                    }).length;
-                    const categoryHasPreparedness = questions.some((question) => preparednessByQuestion.has(question.questionKey));
-                    return (
-                        <button
-                            key={category.category}
-                            type="button"
-                            aria-pressed={activeCategory.category === category.category}
-                            onClick={() => onSelectCategory(category.category)}
-                        >
-                            <span>{category.label}</span>
-                            <strong>
-                                {categoryHasPreparedness
-                                    ? `${categoryStrong} of ${questions.length} Strong`
-                                    : `${questions.length} ${questions.length === 1 ? "question" : "questions"}`}
-                            </strong>
-                        </button>
-                    );
-                })}
-            </div>
-
-            <article className="candidate-coach-plan-category-teaching">
-                <header>
-                    <p>{activeCategory.label} questions</p>
-                    <h3>{activeCategory.purpose}</h3>
-                    <span>{activeCategory.teaching.definition}</span>
-                </header>
-                <div className="candidate-coach-plan-category-teaching__guidance">
-                    <section>
-                        <h4>A useful answer shape</h4>
-                        <ol>
-                            {activeCategory.teaching.answerShape.map((item) => <li key={item}>{item}</li>)}
-                        </ol>
-                    </section>
-                    <section>
-                        <h4>Watch for</h4>
-                        <p>{activeCategory.teaching.watchFor[0]}</p>
-                    </section>
-                </div>
-                <section className="candidate-coach-plan-category-questions">
-                    <header>
-                        <h4>Questions in this category</h4>
-                        <span>{hasPreparedness ? `${strongCount} of ${categoryQuestions.length} Strong` : `${categoryQuestions.length} total`}</span>
-                    </header>
-                    <ul>
-                        {categoryQuestions.map((question) => {
-                            const state = getQuestionPresentation(
-                                question,
-                                preparednessByQuestion.get(question.questionKey),
-                            );
-                            const visible = question.evidenceStatus === "practiced"
-                                || revealedQuestionKeys.has(question.questionKey);
+            <section className="candidate-coach-plan-category-pattern surface-plan" aria-label="Question status by category">
+                <p className="candidate-coach-plan-category-pattern__count">
+                    {plan.practicedQuestionCount} of {plan.questionCount} practiced
+                </p>
+                <div className="candidate-coach-plan-category-pattern__table on-color-glass">
+                    <div className="candidate-coach-plan-category-pattern__axis" style={gridStyle} aria-hidden="true">
+                        <span>Category</span>
+                        <span className="candidate-coach-plan-category-pattern__lanes">
+                            {visibleStates.map((state) => <i key={state}>{coachPlanPatternStateLabel[state]}</i>)}
+                        </span>
+                    </div>
+                    <ul className="candidate-coach-plan-category-pattern__rows">
+                        {rows.map((row) => {
+                            const isSelected = activeCategory.category === row.category.category;
+                            const accessibleState = row.isUnavailable
+                                ? "Category status unavailable"
+                                : row.questions
+                                    .map(({ question, state }) => `Question ${question.questionNumber}, ${coachPlanPatternStateLabel[state]}`)
+                                    .join("; ");
                             return (
-                                <li key={question.questionKey}>
-                                    <button type="button" onClick={() => onSelectQuestion(question.questionKey)}>
-                                        <span>Q{question.questionNumber}</span>
-                                        <span>
-                                            {visible
-                                                ? question.questionText ?? `Planned ${question.categoryLabel.toLowerCase()} question`
-                                                : `Upcoming ${question.categoryLabel.toLowerCase()} question`}
+                                <li key={row.category.category}>
+                                    <button
+                                        type="button"
+                                        className="candidate-coach-plan-category-pattern__row"
+                                        style={gridStyle}
+                                        aria-pressed={isSelected}
+                                        aria-label={`${row.category.label}. ${accessibleState}`}
+                                        onClick={() => onSelectCategory(row.category.category)}
+                                    >
+                                        <span className="candidate-coach-plan-category-pattern__label">
+                                            <strong>{row.category.label}</strong>
                                         </span>
-                                        <span className="candidate-coach-plan-status" data-state={state.key}>{state.label}</span>
-                                        <ChevronRight size={17} aria-hidden="true" />
+                                        <span className="candidate-coach-plan-category-pattern__lanes" aria-hidden="true">
+                                            {visibleStates.map((state) => (
+                                                <span
+                                                    key={state}
+                                                    className="candidate-coach-plan-category-pattern__lane"
+                                                    data-state={state}
+                                                    data-label={coachPlanPatternStateLabel[state]}
+                                                >
+                                                    {row.isUnavailable && state === "unavailable" ? <i><span>&mdash;</span></i> : null}
+                                                    {!row.isUnavailable ? row.questions
+                                                        .filter((question) => question.state === state)
+                                                        .map(({ question }) => (
+                                                            <i key={question.questionKey}>
+                                                                <span>Q{question.questionNumber}</span>
+                                                                {state === "strong"
+                                                                    ? <Check size={10} strokeWidth={3.2} aria-hidden="true" />
+                                                                    : null}
+                                                            </i>
+                                                        )) : null}
+                                                </span>
+                                            ))}
+                                        </span>
                                     </button>
                                 </li>
                             );
                         })}
                     </ul>
-                </section>
+                </div>
+                <p className="sr-only">{patternSummary}</p>
+            </section>
+
+            <article
+                className="candidate-coach-plan-category-focus candidate-coach-plan-guidance candidate-coach-plan-guidance--light"
+                aria-label={`${activeCategory.label} answer guidance`}
+            >
+                <WorkflowTimeline
+                    aria-label={`Answer shape for ${activeCategory.label}`}
+                    className="candidate-coach-plan-answer-map"
+                >
+                    {activeCategory.teaching.answerShape.map((item, index) => (
+                        <WorkflowTimelineStep
+                            key={item}
+                            number={index + 1}
+                            state="upcoming"
+                            title={item}
+                        >
+                            <p>{item}</p>
+                        </WorkflowTimelineStep>
+                    ))}
+                </WorkflowTimeline>
+                {activeCategory.teaching.watchFor[0] ? (
+                    <aside className="candidate-coach-plan-watch candidate-coach-plan-watch--light">
+                        <strong>Watch for</strong>
+                        <p>{activeCategory.teaching.watchFor[0]}</p>
+                    </aside>
+                ) : null}
             </article>
-        </div>
+        </section>
     );
 }
 
 function getQuestionPresentation(
     question: CandidateCoachPlanQuestionReference,
     preparedness?: CandidateQuestionPreparednessItem,
-) {
+): { key: CoachPlanPatternState; label: string } {
     if (preparedness?.state === "rated" && preparedness.band) {
         return {
             key: preparedness.band,
@@ -479,12 +570,4 @@ function getQuestionPresentation(
         return { key: "not-practiced", label: "Not practiced yet" };
     }
     return { key: "unrated", label: "Prep state unavailable" };
-}
-
-function formatCategoryList(categories: CandidateCoachPlanCategoryReference[]) {
-    const labels = categories.map((category) => category.label.toLowerCase());
-    if (labels.length === 0) return "the expected interview range";
-    if (labels.length === 1) return labels[0];
-    if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
-    return `${labels.slice(0, -1).join(", ")}, and ${labels.at(-1)}`;
 }

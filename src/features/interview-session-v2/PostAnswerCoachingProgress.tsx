@@ -101,7 +101,7 @@ export function PostAnswerCoachingProgress({
                         <header className={styles.header}>
                             <CandidateCoachAvatar
                                 variant="surface"
-                                className={styles.avatar}
+                                frame="surface"
                             />
                             <div>
                                 <p>Interview Coach</p>

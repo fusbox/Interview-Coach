@@ -28,13 +28,14 @@ export function WorkflowTimeline({
 }
 
 type WorkflowTimelineStepProps = HTMLAttributes<HTMLLIElement> & {
+    nodeClassName?: string;
     number: number;
     state: WorkflowTimelineStepState;
     title: string;
 };
 
 export const WorkflowTimelineStep = forwardRef<HTMLLIElement, WorkflowTimelineStepProps>(
-    ({ children, className, number, state, title, ...props }, ref) => (
+    ({ children, className, nodeClassName, number, state, title, ...props }, ref) => (
         <li
             ref={ref}
             className={cn("workflow-timeline__step", `is-${state}`, className)}
@@ -43,7 +44,7 @@ export const WorkflowTimelineStep = forwardRef<HTMLLIElement, WorkflowTimelineSt
             {...props}
         >
             <div className="workflow-timeline__rail" aria-hidden="true">
-                <span className="workflow-timeline__node">
+                <span className={cn("workflow-timeline__node", nodeClassName)}>
                     {state === "complete" ? <Check size={17} /> : number}
                 </span>
             </div>

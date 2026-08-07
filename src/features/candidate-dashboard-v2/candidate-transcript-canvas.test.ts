@@ -82,6 +82,94 @@ describe("candidate transcript canvas projection", () => {
         expect(segments.some((segment) => segment.annotationIds.length === 2)).toBe(true);
     });
 
+    it("coalesces overlapping spans for the same claim without highlighting edge punctuation", async () => {
+        const answer = "I studied the training materials and coding manuals.";
+        const { run, attempt } = await createAcceptedFixture(answer);
+        const overlapping = cloneRun(run);
+        const firstQuote = "I studied the training materials";
+        const secondQuote = "training materials and coding manuals.";
+        const secondStart = answer.indexOf(secondQuote);
+        overlapping.accepted.extraction.evidenceSpans = [
+            {
+                id: "span-direct",
+                marker: "direct_answer",
+                quote: firstQuote,
+                start: 0,
+                end: firstQuote.length,
+            },
+            {
+                id: "span-detail",
+                marker: "specific_detail",
+                quote: secondQuote,
+                start: secondStart,
+                end: secondStart + secondQuote.length,
+            },
+        ];
+        overlapping.accepted.feedback.claimEvidence = {
+            acknowledgementSpanIds: ["span-direct", "span-detail"],
+            primaryStrengthSpanIds: [],
+        };
+
+        const projection = createProjection(overlapping, attempt)!;
+        const segments = createCandidateTranscriptSegments(answer, projection.annotations);
+
+        expect(projection.annotations).toHaveLength(1);
+        expect(projection.annotations[0]).toMatchObject({
+            quote: answer.slice(0, -1),
+            basis: { spanIds: ["span-direct", "span-detail"] },
+            markerIds: ["direct_answer", "specific_detail"],
+        });
+        expect(segments.at(-1)).toMatchObject({ text: ".", annotationIds: [] });
+        expect(segments.map((segment) => segment.text).join("")).toBe(answer);
+    });
+
+    it("normalizes stored overlapping annotations through the same candidate-visible rule", async () => {
+        const answer = "I studied the training materials and coding manuals.";
+        const { run, attempt } = await createAcceptedFixture(answer);
+        const projection = createProjection(run, attempt)!;
+        const firstQuote = "I studied the training materials";
+        const secondQuote = "training materials and coding manuals.";
+        const secondStart = answer.indexOf(secondQuote);
+        const sharedIndicator = {
+            kind: "acknowledgement" as const,
+            label: "Coach noticed",
+            message: run.accepted.candidateProjection.acknowledgement,
+        };
+
+        const normalized = normalizeCandidateTranscriptCanvasProjection({
+            ...projection,
+            annotations: [
+                {
+                    id: "stored-direct",
+                    quote: firstQuote,
+                    start: 0,
+                    end: firstQuote.length,
+                    basis: { kind: "span", spanIds: ["span-direct"] },
+                    markerIds: ["direct_answer"],
+                    indicators: [sharedIndicator],
+                },
+                {
+                    id: "stored-detail",
+                    quote: secondQuote,
+                    start: secondStart,
+                    end: secondStart + secondQuote.length,
+                    basis: { kind: "span", spanIds: ["span-detail"] },
+                    markerIds: ["specific_detail"],
+                    indicators: [sharedIndicator],
+                },
+            ],
+        }, {
+            candidateAnswerAttemptId: attempt.candidateAnswerAttemptId,
+            text: answer,
+        });
+
+        expect(normalized?.annotations).toHaveLength(1);
+        expect(normalized?.annotations[0]).toMatchObject({
+            quote: answer.slice(0, -1),
+            markerIds: ["direct_answer", "specific_detail"],
+        });
+    });
+
     it("uses UTF-16 offsets without dropping emoji or smart punctuation", async () => {
         const answer = "I said “yes” 👍, then documented the result.";
         const { run, attempt } = await createAcceptedFixture(answer);

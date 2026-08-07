@@ -30,6 +30,9 @@ export type CandidateSetupSessionCreationResult = {
     nextRoute: `/candidate/session/${string}`;
     setupSnapshot: CandidateSetupPayload & {
         createdAt: string;
+        stageRecommendedQuestionCount?: number;
+        canonicalPlanQuestionCount?: number;
+        paceSize?: number;
     };
     rigorBaselineSnapshot?: CandidatePracticePlanBaselineSnapshot;
     rigorBaselineQuestionWordingSnapshot?: CandidateQuestionWordingResult;
@@ -71,11 +74,19 @@ export function createCandidateSetupSessionPlan({
 }: CandidateSetupSessionCreationInput): CandidateSetupSessionPlanResult {
     const setupPayload = parseCandidateSetupInput(payload);
     const sessionId = normalizeSessionId(createSessionId());
+    const rigorBaselineSnapshot = createCandidatePracticePlanBaseline(
+        setupPayload.interviewStage,
+        setupPayload.questionCount,
+    );
     const setupSnapshot = {
         ...setupPayload,
         createdAt: now.toISOString(),
+        stageRecommendedQuestionCount: rigorBaselineSnapshot.status === "candidate_practice_plan_baseline_v2"
+            ? rigorBaselineSnapshot.stageRecommendedQuestionCount
+            : rigorBaselineSnapshot.questionCount,
+        canonicalPlanQuestionCount: rigorBaselineSnapshot.questionCount,
+        paceSize: setupPayload.questionCount,
     };
-    const rigorBaselineSnapshot = createCandidatePracticePlanBaseline(setupPayload.interviewStage);
     const questionGenerationPlanSnapshot = createCandidateQuestionGenerationPlan({
         baseline: rigorBaselineSnapshot,
         selectedQuestionCount: setupPayload.questionCount,
@@ -83,7 +94,6 @@ export function createCandidateSetupSessionPlan({
     const questionPlanSnapshot = deriveCandidateInitialRoundPlan({
         baseline: rigorBaselineSnapshot,
         generationPlan: questionGenerationPlanSnapshot,
-        selectedQuestionCount: setupPayload.questionCount,
     });
 
     return {

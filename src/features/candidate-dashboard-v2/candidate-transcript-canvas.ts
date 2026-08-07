@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 
 import type { CandidateAnswerAttemptRecord } from "@/features/candidate-session-v2/candidate-answer-history";
 import { EVIDENCE_MARKERS } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
-import type { AcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
+import type {
+    AcceptedEvidenceFirstEvaluatorRun,
+    CompatiblePersistedAcceptedEvidenceFirstEvaluatorRun,
+} from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 
 import type { CandidateEvidenceMarkerId } from "./candidate-transcript-canvas-labels";
 
@@ -54,7 +57,7 @@ export type CandidateTranscriptCanvasProjection = {
 };
 
 type CandidateTranscriptProjectionSource = {
-    acceptedRun: AcceptedEvidenceFirstEvaluatorRun;
+    acceptedRun: CandidateTranscriptAcceptedRun;
     evaluation: {
         evaluationRunId: string;
         answerAttemptId: string;
@@ -62,6 +65,9 @@ type CandidateTranscriptProjectionSource = {
     };
     answerAttempt: CandidateAnswerAttemptRecord;
 };
+
+type CandidateTranscriptAcceptedRun = AcceptedEvidenceFirstEvaluatorRun
+    | CompatiblePersistedAcceptedEvidenceFirstEvaluatorRun;
 
 const MARKER_IDS = new Set<string>(EVIDENCE_MARKERS);
 
@@ -114,7 +120,7 @@ export function createCandidateTranscriptCanvasProjection({
         return [{ span, indicators }];
     });
 
-    const annotations = groupAdmittedSpans(admitted);
+    const annotations = groupAdmittedSpans(answerText, admitted);
     const wholeAnswerIndicators = createWholeAnswerIndicators(acceptedRun);
     const primaryGap = createPrimaryGap(acceptedRun);
 
@@ -157,11 +163,15 @@ export function normalizeCandidateTranscriptCanvasProjection(
         return null;
     }
 
-    const annotations = value.annotations.flatMap((annotation) => {
+    const normalizedAnnotations = value.annotations.flatMap((annotation) => {
         const normalized = normalizeAnnotation(annotation, answer.text);
         return normalized ? [normalized] : [];
     });
-    if (annotations.length !== value.annotations.length || hasDuplicateIds(annotations)) return null;
+    if (
+        normalizedAnnotations.length !== value.annotations.length
+        || hasDuplicateIds(normalizedAnnotations)
+    ) return null;
+    const annotations = normalizeCandidateVisibleAnnotations(answer.text, normalizedAnnotations);
 
     const wholeAnswerIndicators = value.wholeAnswerIndicators.flatMap((indicator) => {
         const normalized = normalizeWholeAnswerIndicator(indicator);
@@ -188,14 +198,17 @@ export function normalizeCandidateTranscriptCanvasProjection(
 }
 
 function groupAdmittedSpans(
+    answerText: string,
     admitted: Array<{
-        span: AcceptedEvidenceFirstEvaluatorRun["accepted"]["extraction"]["evidenceSpans"][number];
+        span: CandidateTranscriptAcceptedRun["accepted"]["extraction"]["evidenceSpans"][number];
         indicators: CandidateTranscriptIndicator[];
     }>,
 ): CandidateTranscriptAnnotation[] {
     const groups = new Map<string, CandidateTranscriptAnnotation>();
     admitted.forEach(({ span, indicators }) => {
-        const key = `${span.start}:${span.end}:${span.quote}`;
+        const visibleSpan = trimCandidateVisibleSpan(answerText, span);
+        if (!visibleSpan) return;
+        const key = `${visibleSpan.start}:${visibleSpan.end}:${visibleSpan.quote}`;
         const existing = groups.get(key);
         if (existing) {
             existing.basis.spanIds.push(span.id);
@@ -208,20 +221,124 @@ function groupAdmittedSpans(
             return;
         }
         groups.set(key, {
-            id: `annotation-${span.start}-${span.end}`,
-            quote: span.quote,
-            start: span.start,
-            end: span.end,
+            id: `annotation-${visibleSpan.start}-${visibleSpan.end}`,
+            quote: visibleSpan.quote,
+            start: visibleSpan.start,
+            end: visibleSpan.end,
             basis: { kind: "span", spanIds: [span.id] },
             markerIds: [span.marker],
             indicators: [...indicators],
         });
     });
-    return Array.from(groups.values()).sort((left, right) => left.start - right.start || left.end - right.end);
+    return normalizeCandidateVisibleAnnotations(answerText, Array.from(groups.values()));
+}
+
+function normalizeCandidateVisibleAnnotations(
+    answerText: string,
+    annotations: CandidateTranscriptAnnotation[],
+): CandidateTranscriptAnnotation[] {
+    const visible = annotations.flatMap((annotation) => {
+        const span = trimCandidateVisibleSpan(answerText, annotation);
+        return span ? [{ ...annotation, ...span }] : [];
+    });
+    const byClaim = new Map<string, CandidateTranscriptAnnotation[]>();
+    visible.forEach((annotation) => {
+        const signature = createIndicatorSignature(annotation.indicators);
+        byClaim.set(signature, [...(byClaim.get(signature) ?? []), annotation]);
+    });
+
+    const coalesced = Array.from(byClaim.values()).flatMap((group) => {
+        const ordered = [...group].sort((left, right) => left.start - right.start || left.end - right.end);
+        const merged: CandidateTranscriptAnnotation[] = [];
+        ordered.forEach((annotation) => {
+            const previous = merged.at(-1);
+            if (!previous || previous.end < annotation.start) {
+                merged.push(cloneAnnotation(annotation));
+                return;
+            }
+            const start = Math.min(previous.start, annotation.start);
+            const end = Math.max(previous.end, annotation.end);
+            const quote = answerText.slice(start, end);
+            if (!isExactUniqueSpan(answerText, { quote, start, end })) {
+                merged.push(cloneAnnotation(annotation));
+                return;
+            }
+            previous.start = start;
+            previous.end = end;
+            previous.quote = quote;
+            previous.basis.spanIds = uniqueValues([
+                ...previous.basis.spanIds,
+                ...annotation.basis.spanIds,
+            ]);
+            previous.markerIds = uniqueValues([
+                ...previous.markerIds,
+                ...annotation.markerIds,
+            ]);
+        });
+        return merged;
+    });
+
+    return coalesced
+        .sort((left, right) => left.start - right.start || left.end - right.end)
+        .map((annotation) => ({
+            ...annotation,
+            id: createAnnotationId(annotation),
+        }));
+}
+
+function cloneAnnotation(annotation: CandidateTranscriptAnnotation): CandidateTranscriptAnnotation {
+    return {
+        ...annotation,
+        basis: { kind: "span", spanIds: [...annotation.basis.spanIds] },
+        markerIds: [...annotation.markerIds],
+        indicators: annotation.indicators.map((indicator) => ({ ...indicator })),
+    };
+}
+
+function trimCandidateVisibleSpan(
+    answerText: string,
+    span: { quote: string; start: number; end: number },
+) {
+    let leading = 0;
+    let trailing = span.quote.length;
+    while (leading < trailing && isCandidateVisibleEdgeCharacter(span.quote[leading])) leading += 1;
+    while (trailing > leading && isCandidateVisibleEdgeCharacter(span.quote[trailing - 1])) trailing -= 1;
+    if (leading === trailing) return null;
+    const candidate = {
+        quote: span.quote.slice(leading, trailing),
+        start: span.start + leading,
+        end: span.start + trailing,
+    };
+    return isExactUniqueSpan(answerText, candidate)
+        ? candidate
+        : { quote: span.quote, start: span.start, end: span.end };
+}
+
+function isCandidateVisibleEdgeCharacter(value: string | undefined) {
+    return Boolean(value && /[\s.,;:!?…]/.test(value));
+}
+
+function createIndicatorSignature(indicators: CandidateTranscriptIndicator[]) {
+    return indicators
+        .map((indicator) => `${indicator.kind}\u0000${indicator.label}\u0000${indicator.message}`)
+        .sort()
+        .join("\u0001");
+}
+
+function createAnnotationId(annotation: CandidateTranscriptAnnotation) {
+    const basisHash = createHash("sha256")
+        .update([...annotation.basis.spanIds].sort().join("|"))
+        .digest("hex")
+        .slice(0, 8);
+    return `annotation-${annotation.start}-${annotation.end}-${basisHash}`;
+}
+
+function uniqueValues<T>(values: T[]) {
+    return Array.from(new Set(values));
 }
 
 function createWholeAnswerIndicators(
-    run: AcceptedEvidenceFirstEvaluatorRun,
+    run: CandidateTranscriptAcceptedRun,
 ): CandidateWholeAnswerIndicator[] {
     const extraction = run.accepted.extraction;
     const feedback = run.accepted.candidateProjection;
@@ -262,7 +379,7 @@ function createWholeAnswerIndicators(
     return indicators;
 }
 
-function createPrimaryGap(run: AcceptedEvidenceFirstEvaluatorRun): CandidateTranscriptGap | null {
+function createPrimaryGap(run: CandidateTranscriptAcceptedRun): CandidateTranscriptGap | null {
     const patternGap = run.accepted.patternGap;
     if (
         patternGap.id === "reinforce_effective_pattern"

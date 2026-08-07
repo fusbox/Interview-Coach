@@ -2,14 +2,20 @@ import Image from "next/image";
 
 type CandidateCoachAvatarProps = {
     variant?: "calm" | "surface" | "cta";
+    frame?: "none" | "surface";
     className?: string;
 };
 
 export function CandidateCoachAvatar({
     variant = "calm",
+    frame = "none",
     className = "",
 }: CandidateCoachAvatarProps) {
-    const baseClassName = ["candidate-coach-avatar", className].filter(Boolean).join(" ");
+    const baseClassName = [
+        "candidate-coach-avatar",
+        frame === "surface" ? "candidate-coach-avatar--surface-frame" : "",
+        className,
+    ].filter(Boolean).join(" ");
 
     return (
         <span className={baseClassName} aria-hidden="true">

@@ -8,8 +8,8 @@ import type {
     CandidateCoachUpdateArtifactWriteResult,
     ClaimCandidateCoachUpdateArtifactInput,
 } from "./candidate-coach-update-artifact-repository";
+import { CANDIDATE_COACH_UPDATE_CLAIM_LEASE_MS } from "./candidate-coach-update-lifecycle";
 import {
-    CANDIDATE_COACH_UPDATE_CLAIM_LEASE_MS,
     CandidateCoachUpdateRuntimeError,
     createFixtureCandidateCoachUpdateRuntime,
     type CandidateCoachUpdateSynthesisRuntime,
@@ -62,6 +62,7 @@ export async function ensureCandidateCoachUpdateArtifact({
         !input
         || input.candidateProfileId !== candidateProfileId
         || input.sourceCandidatePracticeSessionId !== sourceCandidatePracticeSessionId
+        || input.questions.length !== 1
     ) {
         return { status: "coach_update_unavailable", reason: "source_not_ready" };
     }
@@ -70,6 +71,9 @@ export async function ensureCandidateCoachUpdateArtifact({
         candidateProfileId,
         roleProfileId: input.roleProfileId,
         sourceCandidatePracticeSessionId,
+        sourceQuestionKey: input.questions[0].questionKey,
+        sourceAnswerAttemptId: input.questions[0].answerAttempt.candidateAnswerAttemptId,
+        sourceAcceptedEvaluationRunId: input.questions[0].acceptedEvaluationRun.candidateAnswerEvaluationRunId,
         sourceCompletionFingerprint: input.sourceCompletionFingerprint,
         sourceAnswerAttemptIds: input.questions.map((question) => question.answerAttempt.candidateAnswerAttemptId),
         acceptedEvaluationRunIds: input.questions.map((question) => question.acceptedEvaluationRun.candidateAnswerEvaluationRunId),

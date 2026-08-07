@@ -159,11 +159,30 @@ function createStageDrafts(
     analysis: CandidateAnswerAnalysisProviderResult,
 ): Omit<CandidateFeedbackInteractionStage, "actions">[] {
     const feedback = analysis.evidenceFirst.candidateFeedback;
+    const acknowledgement = feedback.acknowledgement;
+    const primaryStrength = feedback.primaryStrength;
+    const biggestUpgrade = feedback.biggestUpgrade;
+    const redoPrompt = feedback.redoPrompt;
+    const nextStepBody = redoPrompt
+        ?? biggestUpgrade
+        ?? "Carry the same clear approach into the next question.";
+    const contentBody = readDistinctFeedbackText(primaryStrength, [
+        acknowledgement,
+        nextStepBody,
+    ]) ?? readDistinctFeedbackText(biggestUpgrade, [
+        acknowledgement,
+        nextStepBody,
+    ]);
     const guidance: NonNullable<CandidateFeedbackInteractionStage["guidance"]> = [];
-    if (feedback.biggestUpgrade) {
+    const distinctBiggestUpgrade = readDistinctFeedbackText(biggestUpgrade, [
+        acknowledgement,
+        contentBody,
+        nextStepBody,
+    ]);
+    if (distinctBiggestUpgrade) {
         guidance.push({
             label: "Try next",
-            body: feedback.biggestUpgrade,
+            body: distinctBiggestUpgrade,
         });
     }
     if (feedback.patternSuggestion) {
@@ -174,21 +193,24 @@ function createStageDrafts(
         });
     }
 
-    const stages: Omit<CandidateFeedbackInteractionStage, "actions">[] = [
-        {
-            id: "acknowledgement",
-            label: "Coach read",
-            title: "First, here is what I heard.",
-            body: feedback.acknowledgement,
-        },
-        {
+    const stages: Omit<CandidateFeedbackInteractionStage, "actions">[] = [{
+        id: "acknowledgement",
+        label: "Coach read",
+        title: "First, here is what I heard.",
+        body: acknowledgement,
+    }];
+
+    if (contentBody) {
+        stages.push({
             id: "content_coaching",
             label: "Answer coaching",
-            title: feedback.primaryStrength ? "What is working" : "One useful focus",
-            body: feedback.primaryStrength ?? feedback.biggestUpgrade ?? feedback.acknowledgement,
+            title: isSameFeedbackText(contentBody, primaryStrength)
+                ? "What is working"
+                : "One useful focus",
+            body: contentBody,
             ...(guidance.length > 0 ? { guidance } : {}),
-        },
-    ];
+        });
+    }
 
     if (feedback.deliveryNote) {
         stages.push({
@@ -202,11 +224,25 @@ function createStageDrafts(
     stages.push({
         id: "next_step",
         label: "Next step",
-        title: feedback.redoPrompt ? "Try the answer again" : "Carry this forward",
-        body: feedback.redoPrompt ?? feedback.biggestUpgrade ?? feedback.acknowledgement,
+        title: redoPrompt ? "Try the answer again" : "Carry this forward",
+        body: nextStepBody,
+        ...(!contentBody && guidance.length > 0 ? { guidance } : {}),
     });
 
     return stages;
+}
+
+function readDistinctFeedbackText(
+    candidate: string | null | undefined,
+    existing: Array<string | null | undefined>,
+) {
+    if (!candidate) return null;
+    return existing.some((value) => isSameFeedbackText(candidate, value)) ? null : candidate;
+}
+
+function isSameFeedbackText(left: string | null | undefined, right: string | null | undefined) {
+    if (!left || !right) return false;
+    return left.trim().toLowerCase() === right.trim().toLowerCase();
 }
 
 function createStageActions({

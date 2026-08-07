@@ -54,13 +54,22 @@ const PANEL_ORDER: Record<AssistancePanel, number> = {
 
 type QuestionAssistanceDisclosureProps = {
     anchorRef?: RefObject<HTMLElement | null>;
+    boundaryRef?: RefObject<HTMLElement | null>;
     disabled?: boolean;
     endpoint: string;
     questionKey: string;
 };
 
+type AssistanceDrawerStyle = CSSProperties & {
+    "--assistance-boundary-distance"?: string;
+    "--assistance-viewport-limit"?: string;
+};
+
+const VIEWPORT_INSET_PX = 16;
+
 export function QuestionAssistanceDisclosure({
     anchorRef,
+    boundaryRef,
     disabled = false,
     endpoint,
     questionKey,
@@ -69,7 +78,7 @@ export function QuestionAssistanceDisclosure({
     const [modalPhase, setModalPhase] = useState<ModalPhase>("closed");
     const [switchDirection, setSwitchDirection] = useState<SwitchDirection>("none");
     const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
-    const [drawerStyle, setDrawerStyle] = useState<CSSProperties>({});
+    const [drawerStyle, setDrawerStyle] = useState<AssistanceDrawerStyle>({});
     const [hints, setHints] = useState<AssistanceState>(INITIAL_STATE);
     const [strongResponse, setStrongResponse] = useState<AssistanceState>(INITIAL_STATE);
     const disclosureId = useId();
@@ -207,41 +216,54 @@ export function QuestionAssistanceDisclosure({
             return undefined;
         }
 
+        const anchor = anchorRef?.current
+            ?? hintsButtonRef.current?.closest<HTMLElement>("[data-tone='question']");
+        if (!anchor) {
+            return undefined;
+        }
+        const boundary = boundaryRef?.current;
+
         const updateDrawerPosition = () => {
-            const anchor = anchorRef?.current
-                ?? hintsButtonRef.current?.closest<HTMLElement>("[data-tone='question']");
-            if (!anchor) {
-                return;
-            }
             const bounds = anchor.getBoundingClientRect();
-            const viewportInset = 16;
-            const top = Math.max(bounds.top, viewportInset);
-            const availableHeight = window.innerHeight - top - viewportInset;
+            const visualViewport = window.visualViewport;
+            const viewportTop = visualViewport?.offsetTop ?? 0;
+            const viewportBottom = viewportTop + (visualViewport?.height ?? window.innerHeight);
+            const top = Math.max(bounds.top, viewportTop + VIEWPORT_INSET_PX);
+            const availableHeight = Math.max(0, viewportBottom - top - VIEWPORT_INSET_PX);
+            const boundaryDistance = boundary
+                ? Math.max(0, boundary.getBoundingClientRect().top - top)
+                : null;
             setDrawerStyle({
                 top,
                 left: bounds.left,
                 width: bounds.width,
-                minHeight: Math.min(bounds.height + 12, availableHeight),
-                maxHeight: Math.max(
-                    160,
-                    Math.min(
-                        bounds.height + 32,
-                        availableHeight,
-                    ),
-                ),
+                "--assistance-viewport-limit": `${availableHeight}px`,
+                "--assistance-boundary-distance": boundaryDistance === null
+                    ? `calc(${availableHeight}px + var(--gap-section))`
+                    : `${boundaryDistance}px`,
             });
         };
 
         updateDrawerPosition();
+        const resizeObserver = typeof ResizeObserver === "undefined"
+            ? null
+            : new ResizeObserver(updateDrawerPosition);
+        resizeObserver?.observe(anchor);
+        if (boundary) {
+            resizeObserver?.observe(boundary);
+        }
         window.addEventListener("resize", updateDrawerPosition);
         window.addEventListener("scroll", updateDrawerPosition, true);
         window.visualViewport?.addEventListener("resize", updateDrawerPosition);
+        window.visualViewport?.addEventListener("scroll", updateDrawerPosition);
         return () => {
+            resizeObserver?.disconnect();
             window.removeEventListener("resize", updateDrawerPosition);
             window.removeEventListener("scroll", updateDrawerPosition, true);
             window.visualViewport?.removeEventListener("resize", updateDrawerPosition);
+            window.visualViewport?.removeEventListener("scroll", updateDrawerPosition);
         };
-    }, [activePanel, anchorRef]);
+    }, [activePanel, anchorRef, boundaryRef]);
 
     const panelId = `${disclosureId}-panel`;
     const panelTitleId = `${disclosureId}-title`;
@@ -381,6 +403,7 @@ export function QuestionAssistanceDisclosure({
                             pressed={activePanel === "hints"}
                             aria-controls={panelId}
                             aria-expanded={activePanel === "hints"}
+                            data-engagement-activity="question_assistance"
                             onClick={() => openPanel("hints")}
                         >
                             {hints.phase === "loading" ? (
@@ -397,6 +420,7 @@ export function QuestionAssistanceDisclosure({
                             pressed={activePanel === "strong_response"}
                             aria-controls={panelId}
                             aria-expanded={activePanel === "strong_response"}
+                            data-engagement-activity="question_assistance"
                             onClick={() => openPanel("strong_response")}
                         >
                             {strongResponse.phase === "loading" ? (
@@ -497,6 +521,7 @@ export function QuestionAssistanceDisclosure({
                     disabled={disabled}
                     aria-controls={panelId}
                     aria-expanded={activePanel === "hints"}
+                    data-engagement-activity="question_assistance"
                     onClick={() => openPanel("hints")}
                 >
                     {hints.phase === "loading" ? (
@@ -514,6 +539,7 @@ export function QuestionAssistanceDisclosure({
                     disabled={disabled}
                     aria-controls={panelId}
                     aria-expanded={activePanel === "strong_response"}
+                    data-engagement-activity="question_assistance"
                     onClick={() => openPanel("strong_response")}
                 >
                     {strongResponse.phase === "loading" ? (

@@ -28,9 +28,9 @@ export async function resolveCandidateSetupRouteIdentity(
             candidateProfileId: access.candidateProfileId,
             setupOwnerKey: createCandidateSetupDraftOwnerKey(access.candidateProfileId, null),
             accessSource: access.source,
-            candidateLaunchSessionId: access.source === "dev_host_launch"
-                ? access.candidateLaunchSessionId
-                : null,
+            // The local dev cookie uses a readable fixture key, not a durable
+            // candidate_launch_sessions UUID. It proves fixture access only.
+            candidateLaunchSessionId: null,
             trustedSetupContext: null,
         };
     }

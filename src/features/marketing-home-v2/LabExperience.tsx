@@ -52,6 +52,7 @@ export function LabExperience({
     /** 0–1 sticky HIW header presence; scrubbed off when Improve unpins. */
     const [dockProgress, setDockProgress] = useState(0);
     const [prepareReveal, setPrepareReveal] = useState(0);
+    const [activeChapterId, setActiveChapterId] = useState(chapters[0]?.id ?? "prepare");
     const dockProgressRef = useRef(0);
 
     useEffect(() => {
@@ -118,6 +119,14 @@ export function LabExperience({
             }
 
             const vh = window.innerHeight;
+            let nextActiveChapterId = chapters[0]?.id ?? "prepare";
+            for (const chapter of chapters) {
+                const chapterElement = document.getElementById(chapter.id);
+                if (chapterElement && chapterElement.getBoundingClientRect().top <= vh * 0.45) {
+                    nextActiveChapterId = chapter.id;
+                }
+            }
+            setActiveChapterId((current) => (current === nextActiveChapterId ? current : nextActiveChapterId));
             const rect = intro.getBoundingClientRect();
             const total = Math.max(intro.offsetHeight - vh, 1);
             const scrolled = clamp01(-rect.top / total);
@@ -172,7 +181,7 @@ export function LabExperience({
             window.removeEventListener("scroll", onScroll);
             window.removeEventListener("resize", onScroll);
         };
-    }, [lastChapterId]);
+    }, [chapters, lastChapterId]);
 
     // Peek from below → settle at center → continue up and off the top.
     const hiwTranslate = (1 - hiwPeek) * 30 - hiwExit * 72;
@@ -278,6 +287,7 @@ export function LabExperience({
                         aria-hidden={pastIntro || hiwOpacity < 0.2}
                     >
                         <p className="lab-intro__hiw-title lab-peek__title">How it works</p>
+                        <p className="lab-peek__lede">Prepare, practice, and improve in one focused loop.</p>
                     </div>
                 </div>
             </section>
@@ -299,6 +309,19 @@ export function LabExperience({
                     aria-hidden={!dockVisible}
                 >
                     <p className="lab-hiw-dock__title">How it works</p>
+                    <nav className="lab-hiw-dock__nav" aria-label="How it works chapters">
+                        {chapters.map((chapter, index) => (
+                            <a
+                                key={chapter.id}
+                                href={`#${chapter.id}`}
+                                className={activeChapterId === chapter.id ? "is-active" : undefined}
+                                aria-current={activeChapterId === chapter.id ? "location" : undefined}
+                            >
+                                <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                                {chapter.label}
+                            </a>
+                        ))}
+                    </nav>
                 </div>
 
                 {chapters.map((chapter, index) => (

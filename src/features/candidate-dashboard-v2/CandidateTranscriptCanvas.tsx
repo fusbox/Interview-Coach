@@ -160,14 +160,16 @@ function CandidateTranscriptAnnotationTrigger({
             }}
         >
             <Popover.Trigger asChild>
-                <button
-                    type="button"
+                <span
+                    role="button"
                     className="candidate-transcript-canvas__annotation"
                     tabIndex={isCurrent ? 0 : -1}
                     onKeyDown={(event) => {
                         if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
                         clearHoverClose();
                         openedByHoverRef.current = false;
+                        onOpenChange(!open);
                     }}
                     onPointerDown={() => {
                         clearHoverClose();
@@ -182,7 +184,7 @@ function CandidateTranscriptAnnotationTrigger({
                     onPointerLeave={scheduleHoverClose}
                 >
                     {text}
-                </button>
+                </span>
             </Popover.Trigger>
             <Popover.Portal>
                 <Popover.Content

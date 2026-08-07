@@ -23,6 +23,22 @@ describe("candidate account contract", () => {
         expect(candidateRegistrationRequestSchema.safeParse(validRegistration).success).toBe(true);
     });
 
+    it("rejects malformed account contact fields at the request boundary", () => {
+        for (const invalidContact of [
+            { email: "sam@example" },
+            { phone: "312-CALL-NOW" },
+            { phone: "+01234567890" },
+            { postalCode: "6060" },
+            { postalCode: "60601-1234" },
+            { postalCode: "A0601" },
+        ]) {
+            expect(candidateRegistrationRequestSchema.safeParse({
+                ...validRegistration,
+                ...invalidContact,
+            }).success).toBe(false);
+        }
+    });
+
     it("keeps optional contact authorization aligned with selected channels", () => {
         expect(candidateRegistrationRequestSchema.safeParse({
             ...validRegistration,
@@ -38,6 +54,8 @@ describe("candidate account contract", () => {
     it("normalizes US and international phone input to E.164", () => {
         expect(normalizeCandidatePhone("(312) 555-0100")).toBe("+13125550100");
         expect(normalizeCandidatePhone("+44 20 7946 0958")).toBe("+442079460958");
+        expect(normalizeCandidatePhone("312-CALL-NOW")).toBeNull();
+        expect(normalizeCandidatePhone("++44 20 7946 0958")).toBeNull();
         expect(normalizeCandidatePhone("123")).toBeNull();
     });
 });

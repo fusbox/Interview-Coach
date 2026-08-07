@@ -121,6 +121,15 @@ const evaluatorProfileSchema = z.object({
     verifier: evidenceFirstModelStageDescriptorSchema.optional(),
 }).strict();
 
+export const COMPATIBLE_PERSISTED_EVIDENCE_FIRST_PROMPT_BUNDLE_VERSIONS = [
+    "candidate_evidence_first_prompts_v14",
+    EVIDENCE_FIRST_PROMPT_BUNDLE_VERSION,
+] as const;
+
+const compatiblePersistedEvaluatorProfileSchema = evaluatorProfileSchema.extend({
+    promptBundleVersion: z.enum(COMPATIBLE_PERSISTED_EVIDENCE_FIRST_PROMPT_BUNDLE_VERSIONS),
+});
+
 const stageAttemptSchema = z.object({
     stage: z.enum(["evidence_extraction", "verification", "feedback_composition"]),
     attempt: z.number().int().positive(),
@@ -174,8 +183,15 @@ export const acceptedEvidenceFirstEvaluatorRunSchema = z.object({
     }).strict(),
 }).strict();
 
+export const compatiblePersistedAcceptedEvidenceFirstEvaluatorRunSchema = acceptedEvidenceFirstEvaluatorRunSchema.extend({
+    profile: compatiblePersistedEvaluatorProfileSchema,
+});
+
 export type EvidenceFirstStageAttemptRecord = z.infer<typeof stageAttemptSchema>;
 export type AcceptedEvidenceFirstEvaluatorRun = z.infer<typeof acceptedEvidenceFirstEvaluatorRunSchema>;
+export type CompatiblePersistedAcceptedEvidenceFirstEvaluatorRun = z.infer<
+    typeof compatiblePersistedAcceptedEvidenceFirstEvaluatorRunSchema
+>;
 
 type RuntimeDependencies = {
     nowMs?: () => number;
@@ -326,16 +342,30 @@ export function parseAcceptedEvidenceFirstEvaluatorRun(
     const parsed = acceptedEvidenceFirstEvaluatorRunSchema.safeParse(value);
     if (!parsed.success) return null;
 
-    const run = parsed.data;
+    return hasValidAcceptedRunIntegrity(parsed.data) ? parsed.data : null;
+}
+
+export function parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun(
+    value: unknown,
+): CompatiblePersistedAcceptedEvidenceFirstEvaluatorRun | null {
+    const parsed = compatiblePersistedAcceptedEvidenceFirstEvaluatorRunSchema.safeParse(value);
+    if (!parsed.success) return null;
+
+    return hasValidAcceptedRunIntegrity(parsed.data) ? parsed.data : null;
+}
+
+function hasValidAcceptedRunIntegrity(
+    run: CompatiblePersistedAcceptedEvidenceFirstEvaluatorRun,
+) {
     const fingerprints = [
         run.accepted.extraction.inputFingerprint,
         run.accepted.feedback.inputFingerprint,
         run.accepted.candidateProjection.inputFingerprint,
         ...(run.accepted.verification.output ? [run.accepted.verification.output.inputFingerprint] : []),
     ];
-    if (fingerprints.some((fingerprint) => fingerprint !== run.inputFingerprint)) return null;
-    if (run.accepted.verification.required !== Boolean(run.accepted.verification.output)) return null;
-    if (!run.accepted.verification.required && run.accepted.verification.reasons.length > 0) return null;
+    if (fingerprints.some((fingerprint) => fingerprint !== run.inputFingerprint)) return false;
+    if (run.accepted.verification.required !== Boolean(run.accepted.verification.output)) return false;
+    if (!run.accepted.verification.required && run.accepted.verification.reasons.length > 0) return false;
     if (
         run.accepted.verification.required
         && (
@@ -343,12 +373,11 @@ export function parseAcceptedEvidenceFirstEvaluatorRun(
             || !run.accepted.verification.output?.supported
             || run.accepted.verification.output.recommendedAction !== "accept"
         )
-    ) return null;
-    if (!hasValidAcceptedRunTimeline(run) || !hasValidStageSequence(run)) return null;
-    return run;
+    ) return false;
+    return hasValidAcceptedRunTimeline(run) && hasValidStageSequence(run);
 }
 
-function hasValidAcceptedRunTimeline(run: AcceptedEvidenceFirstEvaluatorRun) {
+function hasValidAcceptedRunTimeline(run: CompatiblePersistedAcceptedEvidenceFirstEvaluatorRun) {
     const requestedAt = Date.parse(run.requestedAt);
     const completedAt = Date.parse(run.completedAt);
     const elapsed = completedAt - requestedAt;
@@ -357,7 +386,7 @@ function hasValidAcceptedRunTimeline(run: AcceptedEvidenceFirstEvaluatorRun) {
         && elapsed <= EVIDENCE_FIRST_RUNTIME_POLICY.totalBudgetMs;
 }
 
-function hasValidStageSequence(run: AcceptedEvidenceFirstEvaluatorRun) {
+function hasValidStageSequence(run: CompatiblePersistedAcceptedEvidenceFirstEvaluatorRun) {
     const stageOrder: Record<EvidenceFirstRuntimeStage, number> = {
         evidence_extraction: 0,
         verification: 1,

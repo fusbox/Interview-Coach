@@ -45,7 +45,7 @@
     font-size: var(--type-body-size);
     line-height: var(--type-body-line);
     overflow-wrap: anywhere;
-    text-wrap: pretty;
+    text-wrap: wrap;
 }
 
 .statusCopy strong {
@@ -166,7 +166,7 @@
     font-size: var(--type-body-size);
     line-height: var(--type-body-line);
     overflow-wrap: anywhere;
-    text-wrap: pretty;
+    text-wrap: wrap;
 }
 
 .questionTextCollapsed {
@@ -232,7 +232,7 @@
     font-size: var(--type-body-sm-size);
     line-height: var(--type-body-sm-line);
     overflow-wrap: anywhere;
-    text-wrap: pretty;
+    text-wrap: wrap;
 }
 
 .reassurance strong {

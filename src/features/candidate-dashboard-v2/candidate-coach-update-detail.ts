@@ -1,7 +1,10 @@
 import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
 import type { CandidateTranscriptCanvasProjection } from "./candidate-transcript-canvas";
 import type { CandidateFollowUpPracticeIntentKind } from "@/features/candidate-practice-v2/candidate-follow-up-practice-intent";
-import { resolveCandidateFollowUpPlanQuestionNumber } from "@/features/candidate-practice-v2/candidate-follow-up-session-creation";
+import {
+    resolveCandidateFollowUpPlanQuestionNumber,
+    resolveCandidateFollowUpQuestionRoot,
+} from "@/features/candidate-practice-v2/candidate-follow-up-session-creation";
 import type { CandidatePracticeSessionRecord } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 
 export type CandidateCoachUpdateDetail = {
@@ -21,6 +24,14 @@ export type CandidateCoachUpdateDetail = {
 export type CandidateCoachUpdateQuestionDetail = {
     status: "candidate_coach_update_question_detail";
     questionKey: string;
+    sourceOccurrence: {
+        candidatePracticeSessionId: string;
+        questionKey: string;
+    };
+    canonicalQuestion: {
+        candidatePracticeSessionId: string;
+        questionKey: string;
+    };
     questionNumber: number;
     category: string;
     questionText: string;
@@ -69,6 +80,7 @@ export type CandidateFocusedPracticeAction = {
 export function createCandidateCoachUpdateDetail(
     artifact: CandidateCoachUpdateArtifactRecord | null,
     sourceSession: CandidatePracticeSessionRecord | null = null,
+    practiceSessions: CandidatePracticeSessionRecord[] = sourceSession ? [sourceSession] : [],
 ): CandidateCoachUpdateDetail | null {
     if (artifact?.lifecycleState !== "completed" || !artifact.candidateSafeContent || !artifact.completedAt) {
         return null;
@@ -83,6 +95,7 @@ export function createCandidateCoachUpdateDetail(
         candidatePracticeSessionId: artifact.sourceCandidatePracticeSessionId,
         targetRole: content.targetRole,
         sourceSession: matchedSourceSession,
+        practiceSessions,
     }));
 
     return {
@@ -105,11 +118,13 @@ function toQuestionDetail({
     candidatePracticeSessionId,
     targetRole,
     sourceSession,
+    practiceSessions,
 }: {
     question: NonNullable<CandidateCoachUpdateArtifactRecord["candidateSafeContent"]>["questions"][number];
     candidatePracticeSessionId: string;
     targetRole: string;
     sourceSession: CandidatePracticeSessionRecord | null;
+    practiceSessions: CandidatePracticeSessionRecord[];
 }): CandidateCoachUpdateQuestionDetail {
     const actionPosture: CandidateCoachUpdateActionPosture = {
         kind: "review_coaching",
@@ -122,10 +137,22 @@ function toQuestionDetail({
             questionKey: question.questionKey,
         }) ?? question.questionNumber
         : question.questionNumber;
+    const sourceOccurrence = {
+        candidatePracticeSessionId,
+        questionKey: question.questionKey,
+    };
+    const canonicalQuestion = sourceSession
+        ? resolveCandidateFollowUpQuestionRoot({
+            ...sourceOccurrence,
+            existingPracticeSessions: practiceSessions,
+        }) ?? sourceOccurrence
+        : sourceOccurrence;
 
     return {
         status: "candidate_coach_update_question_detail",
         questionKey: question.questionKey,
+        sourceOccurrence,
+        canonicalQuestion,
         questionNumber,
         category: question.category,
         questionText: question.questionText,

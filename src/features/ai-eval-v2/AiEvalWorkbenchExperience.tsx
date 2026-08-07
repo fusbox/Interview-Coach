@@ -66,6 +66,10 @@ import {
     startAiEvalReviewAction,
     updateAiEvalRemediationAction,
 } from "@/app/qa/ai-eval/actions";
+import {
+    PendingServerActionForm,
+    PendingSubmitButton,
+} from "@/components/ui/pending-server-action-form";
 
 export type AiEvalWorkbenchView = "queue" | "inbox" | "remediation";
 
@@ -323,7 +327,7 @@ function CreateRemediationPanel({ findings, returnTarget }: {
                 <p>Choose findings that point to the same engine or product component. Source content remains in its original case.</p>
             </header>
             {findings.length ? (
-                <form action={createAiEvalRemediationAction}>
+                <PendingServerActionForm action={createAiEvalRemediationAction}>
                     <input type="hidden" name="creationRequestKey" value={randomUUID()} />
                     <input type="hidden" name="returnTarget" value={returnTarget} />
                     <div className="ai-eval-remediation-fields">
@@ -354,8 +358,8 @@ function CreateRemediationPanel({ findings, returnTarget }: {
                         </label>
                     </div>
                     <FindingChecklist findings={findings} legend="Findings addressed" />
-                    <button className="is-primary" type="submit"><Wrench size={16} aria-hidden="true" />Create remediation</button>
-                </form>
+                    <PendingSubmitButton className="is-primary"><Wrench size={16} aria-hidden="true" />Create remediation</PendingSubmitButton>
+                </PendingServerActionForm>
             ) : (
                 <div className="ai-eval-remediation-empty">
                     <CheckCircle2 size={22} aria-hidden="true" />
@@ -405,7 +409,7 @@ function RemediationDetail({
             </dl>
 
             {!terminal ? (
-                <form className="ai-eval-remediation-update" action={updateAiEvalRemediationAction}>
+                <PendingServerActionForm className="ai-eval-remediation-update" action={updateAiEvalRemediationAction}>
                     <input type="hidden" name="remediationId" value={remediation.remediationId} />
                     <input type="hidden" name="revision" value={remediation.revision} />
                     <input type="hidden" name="returnTarget" value={returnTarget} />
@@ -432,8 +436,8 @@ function RemediationDetail({
                         Verification note
                         <textarea name="verificationNote" rows={2} maxLength={4000} defaultValue={remediation.verificationNote ?? ""} />
                     </label>
-                    <button type="submit"><Save size={16} aria-hidden="true" />Update workflow</button>
-                </form>
+                    <PendingSubmitButton><Save size={16} aria-hidden="true" />Update workflow</PendingSubmitButton>
+                </PendingServerActionForm>
             ) : remediation.verificationNote ? (
                 <p className="ai-eval-remediation-verification"><ShieldCheck size={18} aria-hidden="true" />{remediation.verificationNote}</p>
             ) : null}
@@ -447,12 +451,12 @@ function RemediationDetail({
                 {!terminal && availableFindings.length ? (
                     <details className="ai-eval-remediation-add-findings">
                         <summary>Add findings</summary>
-                        <form action={linkAiEvalRemediationFindingsAction}>
+                        <PendingServerActionForm action={linkAiEvalRemediationFindingsAction}>
                             <input type="hidden" name="remediationId" value={remediation.remediationId} />
                             <input type="hidden" name="returnTarget" value={returnTarget} />
                             <FindingChecklist findings={availableFindings} legend="Additional submitted findings" />
-                            <button type="submit"><Plus size={16} aria-hidden="true" />Link selected findings</button>
-                        </form>
+                            <PendingSubmitButton><Plus size={16} aria-hidden="true" />Link selected findings</PendingSubmitButton>
+                        </PendingServerActionForm>
                     </details>
                 ) : null}
             </section>
@@ -551,12 +555,12 @@ function FindingRows({ findings, remediation, returnTarget }: {
                     <div className="ai-eval-remediation-findings__actions">
                         <Link href={`/qa/ai-eval?view=queue&case=${encodeURIComponent(finding.workItemId)}`}>Open case</Link>
                         {!finding.regressionCaseId && !["verified", "wont_fix", "duplicate"].includes(remediation.lifecycleState) ? (
-                            <form action={promoteAiEvalRegressionCaseAction}>
+                            <PendingServerActionForm action={promoteAiEvalRegressionCaseAction}>
                                 <input type="hidden" name="remediationId" value={remediation.remediationId} />
                                 <input type="hidden" name="findingId" value={finding.findingId} />
                                 <input type="hidden" name="returnTarget" value={returnTarget} />
-                                <button type="submit"><ShieldCheck size={15} aria-hidden="true" />Promote regression case</button>
-                            </form>
+                                <PendingSubmitButton><ShieldCheck size={15} aria-hidden="true" />Promote regression case</PendingSubmitButton>
+                            </PendingServerActionForm>
                         ) : finding.regressionCaseId ? <span>Regression case</span> : null}
                     </div>
                 </li>
@@ -575,7 +579,7 @@ function RecheckForm({ remediation, regression, candidates, returnTarget }: {
         return <p className="ai-eval-remediation-hint">Review and submit a later {surfaceLabel(regression.surface).toLowerCase()} case before recording this recheck.</p>;
     }
     return (
-        <form className="ai-eval-recheck-form" action={recordAiEvalRecheckAction}>
+        <PendingServerActionForm className="ai-eval-recheck-form" action={recordAiEvalRecheckAction}>
             <input type="hidden" name="remediationId" value={remediation.remediationId} />
             <input type="hidden" name="regressionCaseId" value={regression.regressionCaseId} />
             <input type="hidden" name="returnTarget" value={returnTarget} />
@@ -601,8 +605,8 @@ function RecheckForm({ remediation, regression, candidates, returnTarget }: {
                 Verification note
                 <textarea name="verificationNote" rows={2} maxLength={4000} required />
             </label>
-            <button type="submit"><GitCommitHorizontal size={16} aria-hidden="true" />Record recheck</button>
-        </form>
+            <PendingSubmitButton><GitCommitHorizontal size={16} aria-hidden="true" />Record recheck</PendingSubmitButton>
+        </PendingServerActionForm>
     );
 }
 
@@ -730,13 +734,13 @@ function SourceInbox({ sources, returnTarget }: { sources: AiEvalEligibleSource[
                         <span>{sourceLabel(source.sourceKind)} · {audienceLabel(source.audience)}</span>
                         <span>{formatDate(source.sourceOccurredAt)} · {shortId(source.sourceId)}</span>
                     </div>
-                    <form action={promoteAiEvalSourceAction}>
+                    <PendingServerActionForm action={promoteAiEvalSourceAction}>
                         <input type="hidden" name="sourceKind" value={source.sourceKind} />
                         <input type="hidden" name="sourceId" value={source.sourceId} />
                         <input type="hidden" name="selectionReason" value={source.sourceFailureCode ? "provider_failure" : "production_sample"} />
                         <input type="hidden" name="returnTarget" value={returnTarget} />
-                        <button type="submit"><Plus size={15} aria-hidden="true" />Add to queue</button>
-                    </form>
+                        <PendingSubmitButton><Plus size={15} aria-hidden="true" />Add to queue</PendingSubmitButton>
+                    </PendingServerActionForm>
                 </li>
             ))}
         </ol>
@@ -1041,19 +1045,19 @@ function ReviewPanel({ detail, review, findings, failureLabels, returnTarget }: 
                 <p className="type-eyebrow">Operator review</p>
                 <h2>Record a quality judgment</h2>
                 <p>Starting creates a private draft assigned to you. The source output remains unchanged.</p>
-                <form action={startAiEvalReviewAction}>
+                <PendingServerActionForm action={startAiEvalReviewAction}>
                     <input type="hidden" name="workItemId" value={detail.workItemId} />
                     <input type="hidden" name="rubricVersion" value={`${detail.surface}_rubric_v1`} />
                     <input type="hidden" name="returnTarget" value={returnTarget} />
-                    <button type="submit"><ClipboardCheck size={16} aria-hidden="true" />Start review</button>
-                </form>
+                    <PendingSubmitButton><ClipboardCheck size={16} aria-hidden="true" />Start review</PendingSubmitButton>
+                </PendingServerActionForm>
             </div>
         );
     }
 
     const submitted = review.lifecycleState === "submitted";
     return (
-        <form className="ai-eval-review-form" action={mutateAiEvalReviewAction}>
+        <PendingServerActionForm className="ai-eval-review-form" action={mutateAiEvalReviewAction}>
             <input type="hidden" name="workItemId" value={detail.workItemId} />
             <input type="hidden" name="reviewId" value={review.reviewId} />
             <input type="hidden" name="revision" value={review.revision} />
@@ -1139,9 +1143,9 @@ function ReviewPanel({ detail, review, findings, failureLabels, returnTarget }: 
                                     <p>{finding.rationale}</p>
                                 </div>
                                 {!submitted ? (
-                                    <button type="submit" name="intent" value={`delete-finding:${finding.findingId}`} aria-label={`Delete ${humanize(finding.failureLabel)} finding`}>
+                                    <PendingSubmitButton name="intent" value={`delete-finding:${finding.findingId}`} aria-label={`Delete ${humanize(finding.failureLabel)} finding`}>
                                         <Trash2 size={15} aria-hidden="true" />
-                                    </button>
+                                    </PendingSubmitButton>
                                 ) : null}
                             </li>
                         ))}
@@ -1185,18 +1189,18 @@ function ReviewPanel({ detail, review, findings, failureLabels, returnTarget }: 
                             Rationale
                             <textarea name="findingRationale" rows={3} maxLength={4000} placeholder="Describe the failure without copying source content." />
                         </label>
-                        <button type="submit" name="intent" value="add-finding"><Plus size={15} aria-hidden="true" />Save draft and add finding</button>
+                        <PendingSubmitButton name="intent" value="add-finding"><Plus size={15} aria-hidden="true" />Save draft and add finding</PendingSubmitButton>
                     </div>
                 ) : null}
             </section>
 
             {!submitted ? (
                 <footer>
-                    <button type="submit" name="intent" value="save"><Save size={16} aria-hidden="true" />Save draft</button>
-                    <button className="is-primary" type="submit" name="intent" value="submit"><Send size={16} aria-hidden="true" />Submit review</button>
+                    <PendingSubmitButton name="intent" value="save"><Save size={16} aria-hidden="true" />Save draft</PendingSubmitButton>
+                    <PendingSubmitButton className="is-primary" name="intent" value="submit"><Send size={16} aria-hidden="true" />Submit review</PendingSubmitButton>
                 </footer>
             ) : null}
-        </form>
+        </PendingServerActionForm>
     );
 }
 

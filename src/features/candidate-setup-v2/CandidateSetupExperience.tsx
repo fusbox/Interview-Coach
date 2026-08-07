@@ -1321,32 +1321,35 @@ export function CandidateSetupExperience({
                                                         ? "is-review"
                                                         : "is-action-only",
                                             resumeError ? "is-error" : "",
-                                            isResumeProcessing || resumeArtifact ? "coach-voice-surface" : "",
                                         ].filter(Boolean).join(" ")}
                                         id="resume-review-status"
                                         aria-live="polite"
                                     >
                                         {isResumeProcessing ? (
                                             <>
-                                                <CandidateCoachAvatar variant="surface" className="coach-voice-surface__avatar" />
+                                                <span className="resume-review-status__icon is-processing" aria-hidden="true">
+                                                    <Loader2 className="setup-spinner" size={18} />
+                                                </span>
                                                 <div>
                                                     <strong>Preparing resume text</strong>
                                                     <span>Removing direct contact details and organizing the text for review.</span>
                                                 </div>
-                                                <Loader2 className="setup-spinner" size={20} aria-hidden="true" />
                                             </>
                                         ) : resumeArtifact?.reviewState === "accepted" && !resumeHasUnconfirmedEdits ? (
                                             <>
-                                                <CandidateCoachAvatar variant="surface" className="coach-voice-surface__avatar" />
+                                                <span className="resume-review-status__icon is-ready" aria-hidden="true">
+                                                    <BadgeCheck size={18} />
+                                                </span>
                                                 <div>
                                                     <strong>Resume ready</strong>
                                                     <span>{resumeReviewMessage || "This reviewed resume will be used to tailor your practice."}</span>
                                                 </div>
-                                                <BadgeCheck size={20} aria-hidden="true" />
                                             </>
                                         ) : resumeArtifact?.reviewState === "awaiting_review" || resumeHasUnconfirmedEdits ? (
                                             <>
-                                                <CandidateCoachAvatar variant="surface" className="coach-voice-surface__avatar" />
+                                                <span className="resume-review-status__icon is-review" aria-hidden="true">
+                                                    <FileText size={18} />
+                                                </span>
                                                 <div>
                                                     <strong>Review resume text</strong>
                                                     <span>
@@ -1368,10 +1371,15 @@ export function CandidateSetupExperience({
                                         ) : (
                                             <>
                                                 {resumeError ? (
-                                                    <div>
-                                                        <strong>Resume could not be prepared</strong>
-                                                        <span>{resumeError}</span>
-                                                    </div>
+                                                    <>
+                                                        <span className="resume-review-status__icon is-error" aria-hidden="true">
+                                                            <AlertCircle size={18} />
+                                                        </span>
+                                                        <div>
+                                                            <strong>Resume could not be prepared</strong>
+                                                            <span>{resumeError}</span>
+                                                        </div>
+                                                    </>
                                                 ) : null}
                                                 {resumeSource === "paste" ? (
                                                     <button
@@ -1467,7 +1475,7 @@ export function CandidateSetupExperience({
                                     </div>
                                     <input type="hidden" name="questionCount" value={questionCount} required />
                                     <div className="question-help coach-voice-surface" role="note">
-                                        <CandidateCoachAvatar variant="surface" className="question-help__avatar coach-voice-surface__avatar" />
+                                        <CandidateCoachAvatar variant="surface" frame="surface" />
                                         <p>
                                             {activeStage.recommendation} You can choose a different count, and after your first
                                             session I will guide what to practice next.

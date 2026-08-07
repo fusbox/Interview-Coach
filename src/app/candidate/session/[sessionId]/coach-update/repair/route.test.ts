@@ -29,7 +29,7 @@ describe("/candidate/session/[sessionId]/coach-update/repair route", () => {
         });
     });
 
-    it("repairs evaluator evidence before regenerating the complete Coach Update artifact", async () => {
+    it("repairs legacy completed-session evaluator evidence without creating a new session-level artifact", async () => {
         const coachingRepair = createRepairResult({
             status: "repaired",
             acceptedCount: 1,
@@ -60,23 +60,20 @@ describe("/candidate/session/[sessionId]/coach-update/repair route", () => {
         await expect(response.json()).resolves.toEqual({
             status: "candidate_completed_round_coaching_repair",
             coachingRepair,
-            coachUpdateStatus: "coach_update_completed",
+            coachUpdateStatus: "not_attempted",
         });
         expect(repairCompletedRoundAnalysis).toHaveBeenCalledWith({
             request: expect.any(Request),
             candidateProfileId: "candidate-1",
             sourceCandidatePracticeSessionId: "session-1",
         });
-        expect(ensureCoachUpdateArtifact).toHaveBeenCalledWith({
-            candidateProfileId: "candidate-1",
-            sourceCandidatePracticeSessionId: "session-1",
-        });
+        expect(ensureCoachUpdateArtifact).not.toHaveBeenCalled();
         expect(recordCompletedRoundRepairDiagnostic).toHaveBeenCalledWith(expect.objectContaining({
             event: "candidate_completed_round_coaching_repair",
             outcome: "repaired",
             attemptedCount: 1,
             repairedCount: 1,
-            coachUpdateStatus: "coach_update_completed",
+            coachUpdateStatus: "not_attempted",
         }));
         expect(JSON.stringify(recordCompletedRoundRepairDiagnostic.mock.calls)).not.toMatch(/candidate-1|session-1/);
     });
@@ -133,11 +130,11 @@ describe("/candidate/session/[sessionId]/coach-update/repair route", () => {
         expect(response.status).toBe(200);
         await expect(response.json()).resolves.toMatchObject({
             status: "candidate_completed_round_coaching_repair",
-            coachUpdateStatus: "coach_update_completed",
+            coachUpdateStatus: "not_attempted",
         });
     });
 
-    it("returns an honest failure when evaluator evidence is ready but synthesis is unavailable", async () => {
+    it("keeps completed-session Coach Update synthesis read-only after evaluator repair", async () => {
         const response = await handleCandidateCompletedRoundRepairRequest({
             request: createRequest(),
             sessionId: "session-1",
@@ -150,10 +147,39 @@ describe("/candidate/session/[sessionId]/coach-update/repair route", () => {
             })),
         });
 
-        expect(response.status).toBe(503);
+        expect(response.status).toBe(200);
         await expect(response.json()).resolves.toMatchObject({
             coachingRepair: { status: "ready", allAnsweredOccurrencesAccepted: true },
             coachUpdateStatus: "not_attempted",
+        });
+    });
+
+    it("retries synthesis only for an exact question checkpoint", async () => {
+        const ensureCoachUpdateArtifact = vi.fn(async () => ({
+            status: "coach_update_completed" as const,
+            artifact: {} as never,
+        }));
+        const response = await handleCandidateCompletedRoundRepairRequest({
+            request: new Request(
+                "https://interviewcoach.talentarbor.com/candidate/session/session-1/coach-update/repair?question=slot-1",
+                { method: "POST" },
+            ),
+            sessionId: "session-1",
+            resolveCandidateSessionIdentity: vi.fn(async () => ({ candidateProfileId: "candidate-1" })),
+            findCandidateSession: vi.fn(async () => ({ status: "in_progress" })),
+            ensureCoachUpdateArtifact,
+        });
+
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual({
+            status: "candidate_question_coach_update_repair",
+            coachUpdateStatus: "coach_update_completed",
+        });
+        expect(ensureCoachUpdateArtifact).toHaveBeenCalledWith({
+            candidateProfileId: "candidate-1",
+            sourceCandidatePracticeSessionId: "session-1",
+            sourceQuestionKey: "slot-1",
+            settledAt: expect.any(String),
         });
     });
 });

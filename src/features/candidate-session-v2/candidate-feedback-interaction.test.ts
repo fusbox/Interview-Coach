@@ -162,6 +162,44 @@ describe("candidate feedback interaction contract", () => {
         expect(interaction.stages[3].body).toBe("Try the answer once more with the result included.");
     });
 
+    it("renders a sparse polish upgrade once as the final next step", () => {
+        const biggestUpgrade = "Mention one specific way you would manage the schedule change.";
+        const interaction = createCandidateFeedbackInteraction({
+            analysisSnapshot: createCandidateAnswerAnalysisProviderResultFixture({
+                answer: baseAnalysisSnapshot.answer,
+                evidenceFirst: {
+                    candidateFeedback: {
+                        acknowledgement: "You confirmed your availability and named a practical constraint.",
+                        primaryStrength: null,
+                        biggestUpgrade,
+                        redoPrompt: null,
+                        patternSuggestion: null,
+                        deliveryNote: null,
+                    },
+                    intervention: "polish_then_continue",
+                },
+            }),
+            isLastQuestion: false,
+        });
+
+        expect(interaction.stages.map((stage) => stage.id)).toEqual([
+            "acknowledgement",
+            "next_step",
+        ]);
+        expect(interaction.stages[0].actions[0]).toMatchObject({
+            kind: "explore_feedback",
+            targetStageId: "next_step",
+        });
+        expect(interaction.stages[1]).toMatchObject({
+            title: "Carry this forward",
+            body: biggestUpgrade,
+        });
+        expect(interaction.stages.flatMap((stage) => [
+            stage.body,
+            ...(stage.guidance?.map((item) => item.body) ?? []),
+        ]).filter((text) => text === biggestUpgrade)).toHaveLength(1);
+    });
+
     it("does not offer retry when the analysis lacks immutable attempt identity", () => {
         const interaction = createCandidateFeedbackInteraction({
             analysisSnapshot: {

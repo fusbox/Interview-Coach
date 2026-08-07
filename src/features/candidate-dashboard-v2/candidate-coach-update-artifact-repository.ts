@@ -14,6 +14,9 @@ export type ClaimCandidateCoachUpdateArtifactInput = {
     candidateProfileId: string;
     roleProfileId: string;
     sourceCandidatePracticeSessionId: string;
+    sourceQuestionKey: string;
+    sourceAnswerAttemptId: string;
+    sourceAcceptedEvaluationRunId: string;
     sourceCompletionFingerprint: string;
     sourceAnswerAttemptIds: string[];
     acceptedEvaluationRunIds: string[];
@@ -47,11 +50,10 @@ export function createCandidateCoachUpdateArtifactRepository(
                   where candidate_practice_session_id = $1
                     and candidate_profile_id = $2
                     and role_profile_id = $3
-                    and status = 'completed'
-                    and completion_snapshot_json is not null
+                    and status in ('planned', 'in_progress', 'completed')
                 ),
                 source_lock as materialized (
-                  select pg_advisory_xact_lock(hashtextextended($1::text, 0))
+                  select pg_advisory_xact_lock(hashtextextended($1::text || ':' || $4::text, 0))
                   from owned_source
                 ),
                 expired_requested as (
@@ -59,11 +61,12 @@ export function createCandidateCoachUpdateArtifactRepository(
                   set lifecycle_state = 'failed',
                       validation_json = jsonb_build_object('disposition', 'failed', 'reason', 'stale_generation_claim'),
                       error_code = 'STALE_COACH_UPDATE_CLAIM',
-                      completed_at = $14
+                      completed_at = $17
                   from source_lock
                   where artifact.source_candidate_practice_session_id = $1
+                    and artifact.source_question_key is not distinct from $4
                     and artifact.lifecycle_state = 'requested'
-                    and artifact.requested_at < $15
+                    and artifact.requested_at < $18
                   returning artifact.candidate_coach_update_artifact_id
                 ),
                 existing as materialized (
@@ -73,14 +76,17 @@ export function createCandidateCoachUpdateArtifactRepository(
                   where artifact.source_candidate_practice_session_id = $1
                     and artifact.candidate_profile_id = $2
                     and artifact.role_profile_id = $3
-                    and artifact.source_completion_fingerprint = $4
-                    and artifact.synthesis_input_fingerprint = $7
-                    and artifact.provider = $8
-                    and artifact.model_name = $9
-                    and artifact.prompt_version = $10
-                    and artifact.evaluator_version = $11
-                    and artifact.profile_id = $12
-                    and artifact.configuration_fingerprint = $13
+                    and artifact.source_question_key = $4
+                    and artifact.source_answer_attempt_id = $5
+                    and artifact.source_accepted_evaluation_run_id = $6
+                    and artifact.source_completion_fingerprint = $7
+                    and artifact.synthesis_input_fingerprint = $10
+                    and artifact.provider = $11
+                    and artifact.model_name = $12
+                    and artifact.prompt_version = $13
+                    and artifact.evaluator_version = $14
+                    and artifact.profile_id = $15
+                    and artifact.configuration_fingerprint = $16
                     and artifact.lifecycle_state in ('requested', 'completed')
                     and artifact.candidate_coach_update_artifact_id not in (
                       select candidate_coach_update_artifact_id from expired_requested
@@ -93,12 +99,16 @@ export function createCandidateCoachUpdateArtifactRepository(
                   from public.candidate_coach_update_artifacts artifact
                   cross join source_lock
                   where artifact.source_candidate_practice_session_id = $1
+                    and artifact.source_question_key is not distinct from $4
                 ),
                 inserted as (
                   insert into public.candidate_coach_update_artifacts (
                     candidate_profile_id,
                     role_profile_id,
                     source_candidate_practice_session_id,
+                    source_question_key,
+                    source_answer_attempt_id,
+                    source_accepted_evaluation_run_id,
                     source_completion_fingerprint,
                     source_answer_attempt_ids_json,
                     accepted_evaluation_run_ids_json,
@@ -113,8 +123,8 @@ export function createCandidateCoachUpdateArtifactRepository(
                     lifecycle_state,
                     requested_at
                   )
-                  select $2, $3, $1, $4, $5::jsonb, $6::jsonb, $7, $8, $9, $10, $11, $12, $13,
-                         next_attempt.generation_attempt, 'requested', $14
+                  select $2, $3, $1, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10, $11, $12, $13, $14, $15, $16,
+                         next_attempt.generation_attempt, 'requested', $17
                   from owned_source
                   cross join source_lock
                   cross join next_attempt
@@ -129,6 +139,9 @@ export function createCandidateCoachUpdateArtifactRepository(
                 input.sourceCandidatePracticeSessionId,
                 input.candidateProfileId,
                 input.roleProfileId,
+                input.sourceQuestionKey,
+                input.sourceAnswerAttemptId,
+                input.sourceAcceptedEvaluationRunId,
                 input.sourceCompletionFingerprint,
                 JSON.stringify(input.sourceAnswerAttemptIds),
                 JSON.stringify(input.acceptedEvaluationRunIds),
@@ -254,11 +267,15 @@ export function createCandidateCoachUpdateArtifactRepository(
 
         async listLatestArtifactAttempts(input: { candidateProfileId: string }) {
             const result = await client.query(`
-                select distinct on (artifact.source_candidate_practice_session_id)
+                select distinct on (
+                         artifact.source_candidate_practice_session_id,
+                         coalesce(artifact.source_question_key, '')
+                       )
                        artifact.*
                 from public.candidate_coach_update_artifacts artifact
                 where artifact.candidate_profile_id = $1
                 order by artifact.source_candidate_practice_session_id,
+                         coalesce(artifact.source_question_key, ''),
                          artifact.generation_attempt desc,
                          artifact.updated_at desc
             `, [input.candidateProfileId]);

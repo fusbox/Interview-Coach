@@ -52,6 +52,23 @@ it("describes broad practice without putting the not-sure-yet value into a sente
     expect(screen.queryByText(/for your not sure yet/i)).not.toBeInTheDocument();
 });
 
+it("distinguishes a paced visit from the full canonical question plan", () => {
+    render(
+        <CandidatePreSessionLanding
+            variant="initial"
+            targetRole="Material Handler I"
+            stageLabel="First interview"
+            questionCount={3}
+            planQuestionCount={5}
+            resumeIncluded={false}
+            onStart={vi.fn()}
+        />,
+    );
+
+    expect(screen.getByText(/up to 3 questions from your 5-question plan/i)).toBeInTheDocument();
+    expect(screen.getByText("This visit")).toBeInTheDocument();
+});
+
 it("prefetches the first question from the landing and unlocks audio when practice starts", () => {
     vi.useFakeTimers();
     const questionAudio = {
@@ -92,7 +109,7 @@ it("prefetches the first question from the landing and unlocks audio when practi
     expect(onStart).not.toHaveBeenCalled();
 });
 
-it("leaves the follow-up transition to the destination session route", () => {
+it("keeps the follow-up ready action server-owned before submission", () => {
     render(
         <CandidatePreSessionLanding
             variant="follow_up"
@@ -129,6 +146,42 @@ it("renders the production pre-session landing without scaffold preview controls
     );
     expect(screen.queryByText("Development tools")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /question preview/i })).not.toBeInTheDocument();
+});
+
+it("renders the selected pace against the full canonical plan on the production landing", async () => {
+    const session = createSession();
+    const questionPlanSnapshot = createCandidateQuestionPlan({
+        interviewStage: "first_interview",
+        questionCount: 7,
+    });
+    saveCandidateProvisionalSession(window.sessionStorage, {
+        ...session,
+        setupSnapshot: {
+            ...session.setupSnapshot,
+            questionCount: 3,
+            stageRecommendedQuestionCount: 7,
+            canonicalPlanQuestionCount: 7,
+            paceSize: 3,
+        },
+        questionPlanSnapshot,
+        questionWordingSnapshot: {
+            status: "questions_worded",
+            questions: questionPlanSnapshot.slots.map((slot) => ({
+                slotId: slot.id,
+                index: slot.index,
+                category: slot.category,
+                questionText: `Canonical question ${slot.index + 1}.`,
+            })),
+        },
+    });
+
+    const ui = await CandidateSessionPage({ params: Promise.resolve({ sessionId: "session-v2-1" }) });
+    await act(async () => {
+        render(ui);
+    });
+
+    expect(screen.getByText(/up to 3 questions from your 7-question plan/i)).toBeInTheDocument();
+    expect(screen.getByText("This visit")).toBeInTheDocument();
 });
 
 it("preserves the entering-practice transition before opening the shared live shell", async () => {
@@ -521,6 +574,25 @@ it("recovers the exact live question and uses the dashboard as the candidate exi
     expect(screen.queryByRole("button", { name: /resume session/i })).not.toBeInTheDocument();
 });
 
+it("focuses an unanswered canonical question requested by the dashboard", async () => {
+    const ui = await renderCandidateSessionPage({
+        params: Promise.resolve({ sessionId: "session-v2-1" }),
+        searchParams: Promise.resolve({ pace: "one", question: "slot-2" }),
+        dependencies: {
+            resolveDurableSession: vi.fn(async () => createSession({
+                progress: { status: "live_question", currentQuestionIndex: 0 },
+            })),
+        },
+    });
+
+    await act(async () => {
+        render(ui);
+    });
+
+    expect(screen.getByRole("heading", { name: "Stored snapshot question for the second slot." })).toBeInTheDocument();
+    expect(screen.getByText("Question 2 of 3")).toBeInTheDocument();
+});
+
 it("migrates recovered preview progress into the live question contract", async () => {
     const fetch = vi.fn(async () => new Response(JSON.stringify({ status: "progress_saved" }), { status: 200 }));
     vi.stubGlobal("fetch", fetch);
@@ -757,7 +829,7 @@ it("keeps a saved answer locked and retries only coaching after analysis fails",
 
     fireEvent.click(screen.getByRole("button", { name: "Try coaching again" }));
 
-    expect(await screen.findByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Your coaching" })).toBeInTheDocument();
     expect(screen.getByText("You named a practical first step.")).toBeInTheDocument();
     expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers"))).toHaveLength(1);
     expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers/slot-1/analysis"))).toHaveLength(2);
@@ -799,7 +871,7 @@ it("recovers a persisted answer after reload as analysis-only work", async () =>
 
     fireEvent.click(screen.getByRole("button", { name: "Try coaching again" }));
 
-    expect(await screen.findByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Your coaching" })).toBeInTheDocument();
     expect(screen.getByText("You named a practical first step.")).toBeInTheDocument();
     expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers"))).toHaveLength(0);
     expect(fetch.mock.calls.filter(([input]) => String(input).endsWith("/answers/slot-1/analysis"))).toHaveLength(1);
@@ -900,7 +972,7 @@ it("keeps the draft editable and retries submission when the answer was not acce
     expect(answer).not.toHaveAttribute("readonly");
     fireEvent.click(screen.getByRole("button", { name: "Try submit again" }));
 
-    expect(await screen.findByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Your coaching" })).toBeInTheDocument();
     expect(screen.getByText("You named a practical first step.")).toBeInTheDocument();
     expect(submitAttempts).toBe(2);
 });
@@ -936,14 +1008,14 @@ it("continues from saved coaching to the next live question", async () => {
         />,
     );
 
-    expect(screen.getByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Your coaching" })).toBeInTheDocument();
     expect(screen.getByText("You named a practical first step.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
     expect(await screen.findAllByText("The answer would be stronger with a concrete outcome.")).not.toHaveLength(0);
-    await waitFor(() => expect(screen.getByRole("heading", { name: "Coach feedback" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "One useful focus" })).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await screen.findByText("Add what changed after your action.");
-    await waitFor(() => expect(screen.getByRole("heading", { name: "Coach feedback" })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Try the answer again" })).toHaveFocus());
     fireEvent.click(screen.getByRole("button", { name: "Continue to next question" }));
 
     expect(await screen.findByRole("heading", { name: "Stored snapshot question for the second slot." })).toBeInTheDocument();
@@ -957,6 +1029,58 @@ it("continues from saved coaching to the next live question", async () => {
                 currentQuestionIndex: 1,
             }),
         }),
+    );
+});
+
+it("returns to the dashboard after one settled question in a one-question visit", async () => {
+    const assign = vi.fn();
+    Object.defineProperty(window, "location", {
+        configurable: true,
+        value: {
+            ...window.location,
+            assign,
+        },
+    });
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).endsWith("/feedback-actions")) {
+            const event = JSON.parse(String(init?.body));
+            return new Response(JSON.stringify({
+                status: "feedback_action_saved",
+                feedbackActionEvents: { "slot-1": event },
+            }), { status: 200 });
+        }
+        return new Response(JSON.stringify({ status: "progress_saved" }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetch);
+    render(
+        <CandidatePlannedSessionExperience
+            sessionId="session-v2-1"
+            dashboardHref="/candidate/dashboard"
+            visitPace="one"
+            initialSession={createSession({
+                progress: { status: "live_question", currentQuestionIndex: 0 },
+                answerAnalysisSnapshots: {
+                    "slot-1": createAnalysisSnapshot("slot-1", 0),
+                },
+                answerSubmissions: {
+                    "slot-1": createAnswerSubmission("slot-1", 0),
+                },
+            })}
+        />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Explore feedback" }));
+    await screen.findAllByText("The answer would be stronger with a concrete outcome.");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByText("Add what changed after your action.");
+    fireEvent.click(screen.getByRole("button", { name: "Continue to next question" }));
+
+    expect(await screen.findByRole("heading", { name: "Returning to your dashboard" })).toBeInTheDocument();
+    expect(await screen.findByText(/answer is saved.*continue your plan/i)).toBeInTheDocument();
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("/candidate/dashboard"));
+    expect(fetch).not.toHaveBeenCalledWith(
+        "/candidate/session/session-v2-1/progress",
+        expect.anything(),
     );
 });
 
@@ -1022,6 +1146,8 @@ it("finishes the last answered question without coaching and returns to the dash
             initialSession={createSession({
                 progress: { status: "live_question", currentQuestionIndex: 2 },
                 answerSubmissions: {
+                    "slot-1": createAnswerSubmission("slot-1", 0),
+                    "slot-2": createAnswerSubmission("slot-2", 1),
                     "slot-3": createAnswerSubmissionWithAttempt("slot-3", 2, answerAttemptId, 1),
                 },
                 answerAnalysisRecoveries: {
@@ -1106,7 +1232,7 @@ it("reopens a coached answer and submits the retry as a linked attempt", async (
     fireEvent.change(answer, { target: { value: "A clearer answer with the result included." } });
     fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
 
-    expect(await screen.findByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Your coaching" })).toBeInTheDocument();
     expect(screen.getByText("You named a practical first step.")).toBeInTheDocument();
     expect(answerRequestBodies).toEqual([expect.objectContaining({
         trigger: "feedback_retry",
@@ -1217,6 +1343,8 @@ it("does not carry a failed finish message into feedback for a retried answer", 
             initialSession={createSession({
                 progress: { status: "live_question", currentQuestionIndex: 2 },
                 answerSubmissions: {
+                    "slot-1": createAnswerSubmission("slot-1", 0),
+                    "slot-2": createAnswerSubmission("slot-2", 1),
                     "slot-3": createAnswerSubmissionWithAttempt("slot-3", 2, sourceAttemptId, 1),
                 },
                 answerAnalysisSnapshots: {
@@ -1237,7 +1365,7 @@ it("does not carry a failed finish message into feedback for a retried answer", 
     fireEvent.change(answer, { target: { value: "A stronger retry with a clear outcome." } });
     fireEvent.click(screen.getByRole("button", { name: "Submit answer" }));
 
-    expect(await screen.findByRole("dialog", { name: "Coach feedback" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Your coaching" })).toBeInTheDocument();
     expect(screen.queryAllByText("I could not finish this session yet. Try again.")).toHaveLength(0);
 });
 
@@ -1277,6 +1405,8 @@ it("finishes the session from the last staged coaching step", async () => {
                     "slot-3": createAnalysisSnapshot("slot-3", 2),
                 },
                 answerSubmissions: {
+                    "slot-1": createAnswerSubmission("slot-1", 0),
+                    "slot-2": createAnswerSubmission("slot-2", 1),
                     "slot-3": createAnswerSubmission("slot-3", 2),
                 },
             })}

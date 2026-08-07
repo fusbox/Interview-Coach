@@ -72,6 +72,105 @@ describe("/candidate/session/[sessionId]/feedback-actions route", () => {
         });
     });
 
+    it("atomically advances the canonical cursor and schedules the settled-question Coach Update", async () => {
+        const feedbackActionEvent = {
+            status: "feedback_action_selected" as const,
+            answer: {
+                slotId: "slot-1",
+                questionIndex: 0,
+            },
+            stageId: "next_step" as const,
+            actionKind: "continue_to_next_question" as const,
+            transition: "advance_to_next_question" as const,
+            selectedAt: "2026-07-10T20:03:00.000Z",
+        };
+        const saveFeedbackActionEvent = vi.fn(async () => ({
+            "slot-1": feedbackActionEvent,
+        }));
+        const ensureCoachUpdateArtifact = vi.fn(async () => ({
+            status: "coach_update_unavailable" as const,
+            reason: "source_not_ready" as const,
+        }));
+        let scheduledTask: (() => Promise<void>) | null = null;
+        const scheduleCoachUpdate = vi.fn((task: () => Promise<void>) => {
+            scheduledTask = task;
+        });
+
+        const response = await handleCandidateFeedbackActionRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/feedback-actions", {
+                method: "POST",
+                body: JSON.stringify(feedbackActionEvent),
+            }),
+            sessionId: "session-1",
+            resolveCandidateSessionIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            })),
+            practiceSessionRepository: {
+                findSetupSession: vi.fn(async () => ({
+                    progress: {
+                        status: "live_question" as const,
+                        currentQuestionIndex: 0,
+                        answerMode: "text" as const,
+                    },
+                    questionWordingSnapshot: {
+                        status: "questions_worded" as const,
+                        questions: [
+                            {
+                                slotId: "slot-1",
+                                index: 0,
+                                category: "screening" as const,
+                                questionText: "Why are you interested in this role?",
+                            },
+                            {
+                                slotId: "slot-2",
+                                index: 1,
+                                category: "behavioral" as const,
+                                questionText: "Tell me about a time you handled a deadline.",
+                            },
+                        ],
+                    },
+                    answerSubmissions: {
+                        "slot-1": {
+                            slotId: "slot-1",
+                            questionIndex: 0,
+                            mode: "text" as const,
+                            text: "I am interested in the mission and the work.",
+                            submittedAt: "2026-07-10T20:01:00.000Z",
+                            status: "pending_analysis" as const,
+                        },
+                    },
+                    answerAnalysisSnapshots: {
+                        "slot-1": analysisSnapshot,
+                    },
+                })),
+                saveFeedbackActionEvent,
+            },
+            ensureCoachUpdateArtifact,
+            scheduleCoachUpdate,
+        });
+
+        expect(response.status).toBe(200);
+        expect(saveFeedbackActionEvent).toHaveBeenCalledWith({
+            candidatePracticeSessionId: "session-1",
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            feedbackActionEvent,
+            nextProgress: {
+                status: "live_question",
+                currentQuestionIndex: 1,
+                answerMode: "text",
+            },
+        });
+        expect(scheduleCoachUpdate).toHaveBeenCalledOnce();
+        expect(scheduledTask).not.toBeNull();
+        await scheduledTask!();
+        expect(ensureCoachUpdateArtifact).toHaveBeenCalledWith({
+            candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            sourceCandidatePracticeSessionId: "session-1",
+            sourceQuestionKey: "slot-1",
+            settledAt: "2026-07-10T20:03:00.000Z",
+        });
+    });
+
     it("fails closed when the selected action does not map to a saved analysis snapshot", async () => {
         const response = await handleCandidateFeedbackActionRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/feedback-actions", {

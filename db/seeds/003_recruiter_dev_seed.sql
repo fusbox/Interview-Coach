@@ -48,10 +48,12 @@ on conflict (user_id) do update set
 
 delete from public.app_user_roles
 where user_id = '20000000-0000-4000-8000-000000000001'
-  and role <> 'recruiter';
+  and role not in ('recruiter', 'admin');
 
 insert into public.app_user_roles (user_id, role)
-values ('20000000-0000-4000-8000-000000000001', 'recruiter')
+values
+  ('20000000-0000-4000-8000-000000000001', 'recruiter'),
+  ('20000000-0000-4000-8000-000000000001', 'admin')
 on conflict (user_id, role) do nothing;
 
 insert into public.ai_eval_operator_grants (

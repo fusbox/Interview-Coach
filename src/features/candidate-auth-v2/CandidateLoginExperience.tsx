@@ -1,24 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { AlertCircle, ArrowRight, ChevronDown, Eye, EyeOff, Loader2 } from "lucide-react";
 
+import { useNavigationHandoff } from "@/components/ui/use-navigation-handoff";
 import { CandidateVerificationResend } from "./CandidateVerificationResend";
 
 export function CandidateLoginExperience({ nextTarget }: { nextTarget: string }) {
-    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showResend, setShowResend] = useState(false);
+    const { pending: submitting, claim, release } = useNavigationHandoff();
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        setSubmitting(true);
+        if (!claim()) return;
         setError(null);
         try {
             const response = await fetch("/candidate/account/login", {
@@ -31,12 +30,10 @@ export function CandidateLoginExperience({ nextTarget }: { nextTarget: string })
             if (!response.ok) {
                 throw new Error(result.message ?? "Sign in failed.");
             }
-            router.replace(nextTarget);
-            router.refresh();
+            window.location.replace(nextTarget);
         } catch (cause) {
+            release();
             setError(cause instanceof Error ? cause.message : "Sign in failed.");
-        } finally {
-            setSubmitting(false);
         }
     }
 

@@ -14,11 +14,11 @@ import {
     type CandidateCoachUpdateContent,
     type CandidateCoachUpdateSynthesisInput,
 } from "./candidate-coach-update-artifact";
+import { CANDIDATE_COACH_UPDATE_CLAIM_LEASE_MS } from "./candidate-coach-update-lifecycle";
 
 export const CANDIDATE_COACH_UPDATE_PROVIDER_ENV = "CANDIDATE_COACH_UPDATE_PROVIDER";
 export const CANDIDATE_COACH_UPDATE_FAULT_MODE_ENV = "CANDIDATE_COACH_UPDATE_FAULT_MODE";
 export const CANDIDATE_COACH_UPDATE_RUNTIME_TIMEOUT_MS = 12_000;
-export const CANDIDATE_COACH_UPDATE_CLAIM_LEASE_MS = 120_000;
 export const CANDIDATE_COACH_UPDATE_PROVIDER_REQUEST_VERSION = "candidate_coach_update_provider_request_v2";
 export const CANDIDATE_COACH_UPDATE_PROVIDER_OUTPUT_VERSION = "candidate_coach_update_provider_output_v1";
 export const CANDIDATE_COACH_UPDATE_PRODUCTION_PROMPT_VERSION = "candidate_coach_update_synthesis_prompt_v4";

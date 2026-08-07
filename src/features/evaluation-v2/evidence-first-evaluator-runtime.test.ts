@@ -12,6 +12,7 @@ import {
     EvidenceFirstAdapterError,
     EvidenceFirstEvaluatorRuntimeError,
     parseAcceptedEvidenceFirstEvaluatorRun,
+    parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun,
     runEvidenceFirstEvaluator,
     type EvidenceFirstEvaluatorRuntimeAdapters,
 } from "./evidence-first-evaluator-runtime";
@@ -82,6 +83,35 @@ describe("evidence-first evaluator runtime", () => {
         ]);
         expect(JSON.stringify(result.stages)).not.toContain(evaluationCase.providerInput.answer.text);
         expect(parseAcceptedEvidenceFirstEvaluatorRun(JSON.parse(JSON.stringify(result)))).toEqual(result);
+    });
+
+    it("keeps new runtime reads strict while admitting only allowlisted compatible persisted bundles", async () => {
+        const evaluationCase = createCase();
+        const result = await runEvidenceFirstEvaluator({
+            evaluationRunId: "run-compatible-history",
+            evaluationCase,
+            profile,
+            adapters: createAdapters(
+                async () => ({
+                    value: createExtraction(evaluationCase.inputFingerprint, evaluationCase.providerInput.answer.text),
+                }),
+                async ({ task }) => ({
+                    value: createFeedback(task.inputFingerprint, readPatternGapId(task.input)),
+                }),
+            ),
+            requestedAt: "2026-07-16T12:00:00.000Z",
+        });
+        const historical = JSON.parse(JSON.stringify(result)) as {
+            profile: { promptBundleVersion: string };
+        };
+        historical.profile.promptBundleVersion = "candidate_evidence_first_prompts_v14";
+
+        expect(parseAcceptedEvidenceFirstEvaluatorRun(historical)).toBeNull();
+        expect(parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun(historical))
+            .toEqual(historical);
+
+        historical.profile.promptBundleVersion = "candidate_evidence_first_prompts_v13";
+        expect(parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun(historical)).toBeNull();
     });
 
     it("owns retry count and retries one retryable extractor transport failure", async () => {

@@ -16,6 +16,10 @@ describe("CutoutSurface", () => {
             join(process.cwd(), "design-system", "tokens", "roles.css"),
             "utf8",
         );
+        const utilities = readFileSync(
+            join(process.cwd(), "design-system", "tokens", "utilities.css"),
+            "utf8",
+        );
 
         expect(roles).toContain("--cutout-notch-width: 5.75rem; /* 92px */");
         expect(roles).toContain(
@@ -26,6 +30,13 @@ describe("CutoutSurface", () => {
         );
         expect(roles).toContain(
             "--cutout-surface-radius: var(--radius-card); /* 24px */",
+        );
+        expect(roles).toContain("--cutout-surface-edge-width: 1px;");
+        expect(roles).toContain("--cutout-question-rim-width: 3px;");
+        expect(utilities).toContain(
+            '.ui-cutout-surface[data-tone="question"] .ui-cutout-surface__path {\n' +
+                "    stroke: rgb(var(--foreground) / 0.08);\n" +
+                "}",
         );
         expect(roles).toContain("--cutout-control-offset: calc(");
         expect(createCutoutPath(DEFAULT_CUTOUT_GEOMETRY)).toBe(
@@ -59,10 +70,35 @@ describe("CutoutSurface", () => {
             .toBeInTheDocument();
         expect(container.querySelector(".ui-cutout-surface__contour"))
             .toBeInTheDocument();
+        expect(
+            container.querySelector(".ui-cutout-surface__rim"),
+        ).toHaveAttribute("stroke", expect.stringMatching(/^url\(#.+-rim\)$/));
         expect(container.querySelector("path")).toHaveAttribute("d");
         expect(
             screen.getByRole("group", { name: "Question help" }),
         ).toHaveStyle({ top: "var(--cutout-control-offset)" });
+    });
+
+    it("keeps the directional question rim out of composer and semantic-state edges", () => {
+        const { container, rerender } = render(
+            <CutoutSurface tone="composer">
+                <p>Answer</p>
+            </CutoutSurface>,
+        );
+
+        expect(
+            container.querySelector(".ui-cutout-surface__rim"),
+        ).toHaveAttribute("stroke", "none");
+
+        rerender(
+            <CutoutSurface tone="question" state="critical">
+                <p>Question</p>
+            </CutoutSurface>,
+        );
+
+        expect(
+            container.querySelector(".ui-cutout-surface__rim"),
+        ).toHaveAttribute("stroke", "none");
     });
 
     it("supports bottom-start and logical RTL transforms", () => {

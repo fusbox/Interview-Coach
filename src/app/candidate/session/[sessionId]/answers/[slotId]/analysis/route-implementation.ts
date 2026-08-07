@@ -28,6 +28,7 @@ import {
 import {
     EvidenceFirstEvaluatorRuntimeError,
     parseAcceptedEvidenceFirstEvaluatorRun,
+    parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun,
 } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 import type { GoogleEvidenceFirstTransport } from "@/features/evaluation-v2/google-evidence-first-evaluator";
 import type { EvidenceFirstEvaluatorResolvedConfigurationManifest } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
@@ -425,7 +426,7 @@ export async function handleCandidateAnswerAnalysisRequest({
                     run.candidateAnswerAttemptId === providerRequest.answer.answerAttemptId
                     && run.lifecycleState === "completed"
                 ));
-                const acceptedRun = parseAcceptedEvidenceFirstEvaluatorRun(completedRun?.result);
+                const acceptedRun = parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun(completedRun?.result);
                 analysisSnapshot = acceptedRun
                     && acceptedRun.evaluationRunId === completedRun?.candidateAnswerEvaluationRunId
                     && acceptedRun.inputFingerprint === expectedInputFingerprint

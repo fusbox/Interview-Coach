@@ -33,6 +33,10 @@
     .ui-button__spinner {
         animation: none !important;
     }
+
+    .ui-route-loading-skeleton {
+        animation: none !important;
+    }
 }
 
 @media (prefers-contrast: more) {

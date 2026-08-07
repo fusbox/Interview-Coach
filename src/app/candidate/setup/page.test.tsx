@@ -67,7 +67,9 @@ it("renders the candidate setup inputs with required markers", () => {
     expect(screen.queryByText(/I will remove direct contact details/i)).not.toBeInTheDocument();
     expect(document.querySelectorAll(".setup-panel")).toHaveLength(3);
     expect(document.querySelector(".question-help")).toHaveClass("coach-voice-surface");
-    expect(document.querySelector(".question-help__avatar img")).toHaveAttribute(
+    expect(document.querySelector(".question-help .candidate-coach-avatar"))
+        .toHaveClass("candidate-coach-avatar--surface-frame");
+    expect(document.querySelector(".question-help .candidate-coach-avatar img")).toHaveAttribute(
         "src",
         "/coach-avatar-surface-light.svg",
     );
@@ -135,11 +137,9 @@ it("presents resume preparation as an action, then explains processing and revie
     expect(screen.getByText("Preparing resume text")).toBeInTheDocument();
     expect(screen.getByText(/Removing direct contact details and organizing the text for review/i)).toBeInTheDocument();
     const resumeStatus = screen.getByText("Preparing resume text").closest(".resume-review-status");
-    expect(resumeStatus).toHaveClass("coach-voice-surface");
-    expect(resumeStatus?.querySelector(".coach-voice-surface__avatar img")).toHaveAttribute(
-        "src",
-        "/coach-avatar-surface-light.svg",
-    );
+    expect(resumeStatus).not.toHaveClass("coach-voice-surface");
+    expect(resumeStatus?.querySelector(".candidate-coach-avatar")).not.toBeInTheDocument();
+    expect(resumeStatus?.querySelector(".resume-review-status__icon.is-processing")).toBeInTheDocument();
 
     await act(async () => {
         finishProcessing?.(new Response(JSON.stringify({

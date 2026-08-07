@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 export type LabBeat = {
     id: string;
+    navLabel: string;
     title: string;
     body: string;
     stage: ReactNode;

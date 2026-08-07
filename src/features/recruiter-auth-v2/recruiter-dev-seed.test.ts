@@ -10,6 +10,7 @@ describe("recruiter development seed", () => {
 
         expect(sql).toContain("20000000-0000-4000-8000-000000000001");
         expect(sql).toContain("recruiter-dev@talentarbor.local");
+        expect(sql).toContain("('20000000-0000-4000-8000-000000000001', 'admin')");
         expect(sql).toContain("insert into public.ai_eval_operator_grants");
         expect(sql).toContain("Local development AI-eval operator");
         expect(hash).toBeTruthy();

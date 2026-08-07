@@ -615,6 +615,7 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
             candidatePracticeSessionId: string;
             candidateProfileId: string;
             feedbackActionEvent: CandidateFeedbackActionEvent;
+            nextProgress?: CandidateProvisionalSessionProgress;
         }) {
             const result = await client.query(`
                 update public.candidate_practice_sessions
@@ -623,7 +624,8 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                   $3::text[],
                   $4::jsonb,
                   true
-                )
+                ),
+                    progress_state_json = coalesce($5::jsonb, progress_state_json)
                 where candidate_practice_session_id = $1
                   and candidate_profile_id = $2
                 returning feedback_actions_json
@@ -632,6 +634,7 @@ export function createCandidatePracticeSessionRepository(client: CandidatePracti
                 input.candidateProfileId,
                 [input.feedbackActionEvent.answer.slotId],
                 input.feedbackActionEvent,
+                input.nextProgress ? JSON.stringify(normalizeProgress(input.nextProgress)) : null,
             ]);
 
             return result.rows[0]

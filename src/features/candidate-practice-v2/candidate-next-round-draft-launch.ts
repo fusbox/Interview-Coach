@@ -14,6 +14,7 @@ import type {
     CandidateNextRoundDraftSnapshotResult,
 } from "./candidate-next-round-draft-launch-repository";
 import { resolveCandidateFollowUpQuestionRoot } from "./candidate-follow-up-session-creation";
+import { hasCandidateActivePracticeSessionForContext } from "./candidate-active-practice-session";
 
 export type CandidateNextRoundDraftLaunchResult =
     | {
@@ -76,7 +77,7 @@ export async function launchCandidateNextRoundDraft({
         sourceDraftVersion: expectedVersion,
     });
     if (existingIntent) {
-        return toRecoveredLaunchResult(existingIntent);
+        return toRecoveredLaunchResult(existingIntent, practiceSessions);
     }
 
     const draft = await draftRepository.findDraft({
@@ -95,7 +96,7 @@ export async function launchCandidateNextRoundDraft({
             sourceDraftVersion: expectedVersion,
         });
         return racedIntent
-            ? toRecoveredLaunchResult(racedIntent)
+            ? toRecoveredLaunchResult(racedIntent, practiceSessions)
             : notLaunched("version_conflict", draft.version);
     }
     if (draft.items.length < 1) {
@@ -196,8 +197,17 @@ function createQueueIntentPointer(
 
 function toRecoveredLaunchResult(
     intent: CandidatePracticeIntentRecord,
+    practiceSessions: CandidatePracticeSessionRecord[],
 ): CandidateNextRoundDraftLaunchResult {
     if (intent.lifecycleState === "ready") {
+        if (hasCandidateActivePracticeSessionForContext({
+            candidateProfileId: intent.candidateProfileId,
+            roleProfileId: intent.roleProfileId,
+            legacyTargetRole: intent.targetRole,
+            practiceSessions,
+        })) {
+            return notLaunched("invalid_items");
+        }
         return launched("replayed", intent.candidatePracticeIntentId);
     }
     if (intent.lifecycleState === "consumed" && intent.consumedCandidatePracticeSessionId) {

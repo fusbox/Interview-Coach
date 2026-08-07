@@ -140,15 +140,55 @@
     background: var(--dashboard-glass-quiet-hover-background);
 }
 
+/* Reviewed coaching is available but no longer the dashboard's active
+   spotlight. This opaque blue docket stays legible without relying on the
+   canvas color or introducing another glass surface. */
+.surface-coach-quiet {
+    border: 0;
+    border-radius: var(--radius-card);
+    background: var(--coach-update-quiet-background);
+    box-shadow:
+        var(--elevation-row),
+        inset 0 1px 0 var(--coach-update-quiet-contour);
+    color: var(--coach-update-quiet-foreground);
+}
+
+.surface-coach-quiet[data-interactive="true"]:hover,
+.surface-coach-quiet[data-interactive="true"]:focus-visible {
+    background: var(--coach-update-quiet-hover-background);
+}
+
+/* Coach Plan is a stable reference object: opaque matte blue, white ink,
+   and one restrained elevation. It is neither glass nor a second spotlight. */
+.surface-plan {
+    border: 0;
+    border-radius: var(--radius-card);
+    background: var(--coach-plan-surface-background);
+    box-shadow:
+        var(--elevation-panel),
+        inset 0 1px 0 var(--coach-plan-surface-contour);
+    color: var(--coach-plan-surface-foreground);
+}
+
+.surface-plan[data-interactive="true"]:hover,
+.surface-plan[data-interactive="true"]:focus-visible {
+    background: var(--coach-plan-surface-hover-background);
+}
+
 /* Glass-on-color — a child of any colored/dark surface. Translucent, never an
    opaque white card. --glass-ink / --glass-tint are the on-glass text + hairline. */
 .on-color-glass {
-    background: rgb(255 255 255 / 0.10);
-    border: 1px solid rgb(var(--glass-tint) / 0.18);
+    --on-color-glass-background: rgb(255 255 255 / 0.10);
+    --on-color-glass-border: rgb(var(--glass-tint) / 0.18);
+    --on-color-glass-filter: blur(8px);
+    --on-color-glass-foreground: rgb(var(--glass-ink));
+
+    background: var(--on-color-glass-background);
+    border: 1px solid var(--on-color-glass-border);
     border-radius: var(--radius-widget);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    color: rgb(var(--glass-ink));
+    backdrop-filter: var(--on-color-glass-filter);
+    -webkit-backdrop-filter: var(--on-color-glass-filter);
+    color: var(--on-color-glass-foreground);
 }
 .on-color-glass-strong {
     background: rgb(255 255 255 / 0.16);
@@ -369,6 +409,27 @@
     animation: ui-progress-spin var(--motion-progress-duration) linear infinite;
 }
 
+/* Route-loading placeholders share one neutral material and motion contract.
+   Route-specific classes own only the structural dimensions they represent. */
+.ui-route-loading-skeleton {
+    display: block;
+    border-radius: var(--radius-control);
+    background: linear-gradient(
+        90deg,
+        rgb(var(--border) / 0.52),
+        rgb(var(--primary-wash)),
+        rgb(var(--border) / 0.52)
+    );
+    background-size: 220% 100%;
+    animation: ui-route-loading-shimmer var(--motion-progress-duration) var(--ease-standard) infinite;
+}
+
+@keyframes ui-route-loading-shimmer {
+    to {
+        background-position: -120% 0;
+    }
+}
+
 /* Icon-only controls use a fixed square target and visible selected states.
    The accessible label remains the responsibility of the React primitive. */
 .ui-icon-button {
@@ -526,9 +587,19 @@
     filter: drop-shadow(var(--elevation-cutout-edge));
 }
 
+.ui-cutout-surface__rim,
 .ui-cutout-surface__path {
-    stroke-width: 1;
     vector-effect: non-scaling-stroke;
+}
+
+.ui-cutout-surface__rim {
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: var(--cutout-question-rim-width);
+}
+
+.ui-cutout-surface__path {
+    stroke-width: var(--cutout-surface-edge-width);
 }
 
 .ui-cutout-surface[data-tone="question"] .ui-cutout-surface__stop-start {
@@ -540,7 +611,31 @@
 }
 
 .ui-cutout-surface[data-tone="question"] .ui-cutout-surface__path {
-    stroke: rgb(var(--primary) / 0.18);
+    stroke: rgb(var(--foreground) / 0.08);
+}
+
+.ui-cutout-surface[data-tone="question"] .ui-cutout-surface__rim-stop-start {
+    stop-color: rgb(var(--glass-tint) / 0.78);
+}
+
+.ui-cutout-surface[data-tone="question"] .ui-cutout-surface__rim-stop-middle {
+    stop-color: rgb(var(--glass-tint) / 0.1);
+}
+
+.ui-cutout-surface[data-tone="question"] .ui-cutout-surface__rim-stop-end {
+    stop-color: rgb(var(--foreground) / 0.12);
+}
+
+.dark .ui-cutout-surface[data-tone="question"] .ui-cutout-surface__rim-stop-start {
+    stop-color: rgb(var(--glass-tint) / 0.22);
+}
+
+.dark .ui-cutout-surface[data-tone="question"] .ui-cutout-surface__rim-stop-middle {
+    stop-color: rgb(var(--glass-tint) / 0.06);
+}
+
+.dark .ui-cutout-surface[data-tone="question"] .ui-cutout-surface__rim-stop-end {
+    stop-color: rgb(var(--surface-base) / 0.56);
 }
 
 .ui-cutout-surface[data-tone="composer"] .ui-cutout-surface__stop-start,

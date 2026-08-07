@@ -84,6 +84,20 @@ describe("candidate answer analysis adapter", () => {
         })).toThrow("Answer analysis provider request must map to the submitted answer slot.");
     });
 
+    it("uses the canonical plan count instead of a smaller visit pace in evaluator context", () => {
+        const providerRequest = createCandidateAnswerAnalysisProviderRequest({
+            request: analysisRequest,
+            question,
+            setupSnapshot: {
+                ...setupSnapshot,
+                questionCount: 3,
+                canonicalPlanQuestionCount: 7,
+            },
+        });
+
+        expect(providerRequest.setupContext.questionCount).toBe(7);
+    });
+
     it("evaluates a voice transcript without inventing unavailable delivery markers", () => {
         const providerRequest = createCandidateAnswerAnalysisProviderRequest({
             request: {

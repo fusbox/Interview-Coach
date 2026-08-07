@@ -58,11 +58,6 @@ describe("/candidate/session/[sessionId]/complete route", () => {
             completionSnapshot: input.completionSnapshot,
             progress: input.completionSnapshot.finalProgress,
         }));
-        const ensureCoachUpdateArtifact = vi.fn(async () => ({
-            status: "coach_update_unavailable" as const,
-            reason: "source_not_ready" as const,
-        }));
-
         const response = await handleCandidateSessionCompleteRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/complete", {
                 method: "POST",
@@ -130,6 +125,14 @@ describe("/candidate/session/[sessionId]/complete route", () => {
                             submittedAt: "2026-07-10T22:05:00.000Z",
                             status: "pending_analysis" as const,
                         },
+                        "slot-3": {
+                            slotId: "slot-3",
+                            questionIndex: 2,
+                            mode: "text" as const,
+                            text: "I would identify the cause, communicate the delay, and reset priorities.",
+                            submittedAt: "2026-07-10T22:08:00.000Z",
+                            status: "pending_analysis" as const,
+                        },
                     },
                     answerAnalysisSnapshots: {
                         "slot-1": analysisSnapshot,
@@ -137,7 +140,6 @@ describe("/candidate/session/[sessionId]/complete route", () => {
                 })),
                 completeSession,
             },
-            ensureCoachUpdateArtifact,
         });
 
         expect(response.status).toBe(200);
@@ -153,15 +155,14 @@ describe("/candidate/session/[sessionId]/complete route", () => {
                     currentQuestionIndex: 2,
                 },
                 questionCount: 3,
-                answeredCount: 2,
+                answeredCount: 3,
                 coachedCount: 1,
-                answeredQuestionKeys: ["slot-1", "slot-2"],
+                answeredQuestionKeys: ["slot-1", "slot-2", "slot-3"],
                 coachedQuestionKeys: ["slot-1"],
-                skippedOrUnansweredQuestionKeys: ["slot-3"],
+                skippedOrUnansweredQuestionKeys: [],
                 nextRoute: "/candidate/dashboard?prep=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             },
             nextRoute: "/candidate/dashboard?prep=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-            coachUpdateStatus: "coach_update_unavailable",
         });
         expect(completeSession).toHaveBeenCalledWith({
             candidatePracticeSessionId: "session-1",
@@ -171,10 +172,66 @@ describe("/candidate/session/[sessionId]/complete route", () => {
                 nextRoute: "/candidate/dashboard?prep=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
             }),
         });
-        expect(ensureCoachUpdateArtifact).toHaveBeenCalledWith({
-            candidateProfileId: "22222222-2222-4222-8222-222222222222",
-            sourceCandidatePracticeSessionId: "session-1",
+    });
+
+    it("rejects completion while any canonical-plan question is unanswered", async () => {
+        const completeSession = vi.fn();
+        const response = await handleCandidateSessionCompleteRequest({
+            request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/complete", {
+                method: "POST",
+            }),
+            sessionId: "session-1",
+            now: new Date("2026-07-10T22:10:00.000Z"),
+            resolveCandidateSessionIdentity: vi.fn(async () => ({
+                candidateProfileId: "22222222-2222-4222-8222-222222222222",
+            })),
+            practiceSessionRepository: {
+                findSetupSession: vi.fn(async () => ({
+                    candidatePracticeSessionId: "session-1",
+                    candidateProfileId: "22222222-2222-4222-8222-222222222222",
+                    setupSnapshot: {
+                        targetRole: "Material Handler I",
+                        interviewStage: "first_interview",
+                        questionCount: 3,
+                    },
+                    questionWordingSnapshot: {
+                        status: "questions_worded" as const,
+                        questions: [
+                            {
+                                slotId: "slot-1",
+                                index: 0,
+                                category: "screening" as const,
+                                questionText: "What interests you about this role?",
+                            },
+                            {
+                                slotId: "slot-2",
+                                index: 1,
+                                category: "behavioral" as const,
+                                questionText: "Tell me about a deadline.",
+                            },
+                        ],
+                    },
+                    answerSubmissions: {
+                        "slot-1": {
+                            slotId: "slot-1",
+                            questionIndex: 0,
+                            mode: "text" as const,
+                            text: "I enjoy organized material flow.",
+                            submittedAt: "2026-07-10T22:01:00.000Z",
+                            status: "pending_analysis" as const,
+                        },
+                    },
+                })),
+                completeSession,
+            },
         });
+
+        expect(response.status).toBe(409);
+        await expect(response.json()).resolves.toEqual({
+            code: "CANONICAL_PLAN_INCOMPLETE",
+            error: "Every question in the canonical practice plan needs an answer before completion.",
+        });
+        expect(completeSession).not.toHaveBeenCalled();
     });
 
     it("fails closed when question wording is unavailable", async () => {
@@ -203,7 +260,7 @@ describe("/candidate/session/[sessionId]/complete route", () => {
         });
     });
 
-    it("runs bounded evaluator repair after completion and gates Coach Update generation on complete accepted evidence", async () => {
+    it("runs bounded evaluator repair after completion without generating a duplicate Coach Update", async () => {
         const completionSnapshot = {
             status: "candidate_session_completed" as const,
             audience: "candidate_led" as const,
@@ -234,6 +291,7 @@ describe("/candidate/session/[sessionId]/complete route", () => {
             status: "coach_update_completed" as const,
             artifact: {} as never,
         }));
+        const recordCompletedRoundRepairDiagnostic = vi.fn();
 
         const response = await handleCandidateSessionCompleteRequest({
             request: new Request("https://interviewcoach.talentarbor.com/candidate/session/session-1/complete", {
@@ -255,6 +313,7 @@ describe("/candidate/session/[sessionId]/complete route", () => {
             },
             repairCompletedRoundAnalysis,
             ensureCoachUpdateArtifact,
+            recordCompletedRoundRepairDiagnostic,
         });
 
         expect(response.status).toBe(200);
@@ -263,10 +322,11 @@ describe("/candidate/session/[sessionId]/complete route", () => {
                 status: "repaired",
                 allAnsweredOccurrencesAccepted: true,
             },
-            coachUpdateStatus: "coach_update_completed",
         });
-        expect(repairCompletedRoundAnalysis.mock.invocationCallOrder[0])
-            .toBeLessThan(ensureCoachUpdateArtifact.mock.invocationCallOrder[0]);
+        expect(ensureCoachUpdateArtifact).not.toHaveBeenCalled();
+        expect(recordCompletedRoundRepairDiagnostic).toHaveBeenCalledWith(expect.objectContaining({
+            coachUpdateStatus: "not_attempted",
+        }));
     });
 
     it("replays the first stored completion without rebuilding it from later compatibility fields", async () => {
@@ -315,9 +375,8 @@ describe("/candidate/session/[sessionId]/complete route", () => {
             completionSnapshot: {
                 completedAt: "2026-07-09T20:05:00.000Z",
             },
-            coachUpdateStatus: "coach_update_unavailable",
         });
         expect(completeSession).toHaveBeenCalledWith(expect.objectContaining({ completionSnapshot }));
-        expect(ensureCoachUpdateArtifact).toHaveBeenCalledTimes(1);
+        expect(ensureCoachUpdateArtifact).not.toHaveBeenCalled();
     });
 });

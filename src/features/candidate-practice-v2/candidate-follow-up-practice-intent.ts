@@ -2,6 +2,7 @@ import type { CandidatePracticeSessionRecord } from "@/features/candidate-sessio
 import type { CandidateQuestionPlanCategory } from "@/features/candidate-session-v2/candidate-question-plan";
 import type { CandidateSetupResumeArtifactReference } from "@/features/candidate-setup-v2/candidate-setup-contract";
 import { resolveCandidateFollowUpPlanQuestionNumber } from "./candidate-follow-up-session-creation";
+import { hasCandidateActivePracticeSessionForContext } from "./candidate-active-practice-session";
 
 export type CandidateFollowUpPracticeIntentKind =
     | "practice_from_feedback"
@@ -182,6 +183,14 @@ export function resolveCandidateFollowUpPracticeIntent({
         return null;
     }
     if (requestedLegacyTargetRole && (roleProfileId || requestedLegacyTargetRole !== targetInterviewId)) {
+        return null;
+    }
+    if (hasCandidateActivePracticeSessionForContext({
+        candidateProfileId,
+        roleProfileId,
+        legacyTargetRole: sourceSession.setupSnapshot.targetRole,
+        practiceSessions,
+    })) {
         return null;
     }
 

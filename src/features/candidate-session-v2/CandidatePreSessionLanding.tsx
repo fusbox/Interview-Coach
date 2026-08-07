@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowRight, Clock3, LockKeyhole, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clock3, Loader2, LockKeyhole, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
@@ -29,6 +29,7 @@ type CandidatePreSessionLandingProps = {
     targetRole: string;
     stageLabel: string;
     questionCount: number;
+    planQuestionCount?: number;
     resumeIncluded: boolean;
     resumeLabel?: string | null;
     candidateFirstName?: string;
@@ -51,6 +52,7 @@ export function CandidatePreSessionLanding({
     targetRole,
     stageLabel,
     questionCount,
+    planQuestionCount = questionCount,
     resumeIncluded,
     resumeLabel,
     candidateFirstName,
@@ -67,9 +69,11 @@ export function CandidatePreSessionLanding({
     const [isPreparing, setIsPreparing] = useState(false);
     const pageRef = useRef<HTMLElement | null>(null);
     const transitionTimerRef = useRef<number | null>(null);
+    const routedStartSubmittedRef = useRef(false);
     const isFollowUp = variant === "follow_up";
     const isInvited = variant === "invited";
     const canStart = Boolean(startActionUrl || onStart);
+    const showEntryOverlay = isPreparing && !startActionUrl;
     const questionLabel = questionCount === 1 ? "1 question" : `${questionCount} questions`;
     const normalizedStage = stageLabel.trim().toLowerCase();
     const stageContext = normalizedStage === "not sure yet"
@@ -84,7 +88,9 @@ export function CandidatePreSessionLanding({
         ? `I'll keep this round focused on the ${questionCount === 1 ? "question" : "questions"} you chose.`
         : isInvited
             ? `You've been invited to work through ${questionLabel}. After each answer, your coach will help you strengthen your response.`
-            : `You'll work through ${questionLabel} ${stageContext}. After each answer, I'll help you see what's working and what to try next.`;
+            : planQuestionCount > questionCount
+                ? `You'll work through up to ${questionLabel} from your ${planQuestionCount}-question plan ${stageContext}. After each answer, I'll help you see what's working and what to try next.`
+                : `You'll work through ${questionLabel} ${stageContext}. After each answer, I'll help you see what's working and what to try next.`;
 
     useEffect(() => () => {
         if (transitionTimerRef.current !== null) {
@@ -112,20 +118,20 @@ export function CandidatePreSessionLanding({
             return;
         }
 
-        if (isPreparing) {
+        if (showEntryOverlay) {
             page.setAttribute("inert", "");
             return () => page.removeAttribute("inert");
         }
 
         page.removeAttribute("inert");
-    }, [isPreparing]);
+    }, [showEntryOverlay]);
 
     return (
         <>
         <main
             ref={pageRef}
             className={`${styles.page} candidate-app-shell`}
-            aria-hidden={isPreparing || undefined}
+            aria-hidden={showEntryOverlay || undefined}
         >
             <CandidateBrandHeader actions={<CandidateThemeSwitcher />} frame="focused" />
             <div className={`${styles.layout} app-grid app-grid--focused`}>
@@ -152,7 +158,7 @@ export function CandidatePreSessionLanding({
                             <dd>{stageLabel}</dd>
                         </div>
                         <div>
-                            <dt>Questions</dt>
+                            <dt>{planQuestionCount > questionCount ? "This visit" : "Questions"}</dt>
                             <dd>{questionCount}</dd>
                         </div>
                         {!isInvited ? (
@@ -220,19 +226,34 @@ export function CandidatePreSessionLanding({
                             <form
                                 className={styles.primaryAction}
                                 aria-label="Start follow-up practice"
+                                aria-busy={isPreparing || undefined}
                                 action={startActionUrl}
                                 method="post"
-                                onSubmit={() => {
+                                onSubmit={(event) => {
+                                    if (routedStartSubmittedRef.current) {
+                                        event.preventDefault();
+                                        return;
+                                    }
+
+                                    routedStartSubmittedRef.current = true;
                                     void questionAudio?.unlock();
+                                    setIsPreparing(true);
                                 }}
                             >
                                 <button
-                                    className={`candidate-button candidate-button--primary ${styles.actionButton}`}
+                                    className={`ui-button candidate-button candidate-button--primary ${styles.actionButton}`}
                                     type="submit"
+                                    disabled={isPreparing}
+                                    aria-busy={isPreparing || undefined}
+                                    data-state={isPreparing ? "loading" : undefined}
                                 >
-                                    Start practice
-                                    <ArrowRight size={16} aria-hidden="true" />
+                                    <span className="ui-button__content">
+                                        Start practice
+                                        <ArrowRight size={16} aria-hidden="true" />
+                                    </span>
+                                    {isPreparing ? <Loader2 className="ui-button__spinner" aria-hidden="true" /> : null}
                                 </button>
+                                {isPreparing ? <span className="sr-only" role="status">Starting practice</span> : null}
                             </form>
                         ) : (
                             <button
@@ -274,7 +295,7 @@ export function CandidatePreSessionLanding({
                 </div>
             </div>
         </main>
-        {isPreparing ? <CandidatePracticeEntryTransitionOverlay isReleasing={false} /> : null}
+        {showEntryOverlay ? <CandidatePracticeEntryTransitionOverlay isReleasing={false} /> : null}
         </>
     );
 
@@ -362,7 +383,7 @@ export function CandidatePracticeEntryTransitionOverlay({
     mode = "entry",
 }: {
     isReleasing: boolean;
-    mode?: "entry" | "coach_plan" | "summary";
+    mode?: "entry" | "coach_plan" | "summary" | "dashboard";
 }) {
     return (
         <div
@@ -376,25 +397,32 @@ export function CandidatePracticeEntryTransitionOverlay({
 }
 
 function CandidatePracticeEntryTransitionContent({ mode }: {
-    mode: "entry" | "coach_plan" | "summary";
+    mode: "entry" | "coach_plan" | "summary" | "dashboard";
 }) {
-    const isCompletion = mode !== "entry";
+    const isCompletion = mode === "coach_plan" || mode === "summary";
     const isSummary = mode === "summary";
+    const isDashboardReturn = mode === "dashboard";
     return (
         <section className="candidate-pre-session__transition">
             <span className="candidate-pre-session__loader" aria-hidden="true">
                 <Sparkles size={24} />
             </span>
-            <p className="type-eyebrow">{isCompletion ? "Practice complete" : "Practice round"}</p>
+            <p className="type-eyebrow">
+                {isDashboardReturn ? "Practice visit" : isCompletion ? "Practice complete" : "Practice round"}
+            </p>
             <h1>
-                {isSummary
+                {isDashboardReturn
+                    ? "Returning to your dashboard"
+                    : isSummary
                     ? "Preparing your summary"
                     : isCompletion
                         ? "Preparing your Coach Plan"
                         : "Entering practice space"}
             </h1>
             <p>
-                {isSummary
+                {isDashboardReturn
+                    ? <>Your answer is saved. Continue your plan whenever you&apos;re ready.</>
+                    : isSummary
                     ? <>I&apos;m bringing together your answers and coaching from this round.</>
                     : isCompletion
                     ? <>I&apos;m connecting this round to your latest coaching and next practice steps.</>

@@ -27,6 +27,21 @@ describe("CandidateTranscriptCanvas", () => {
         expect(screen.getByText("You used a concrete work detail.")).toBeInTheDocument();
     });
 
+    it("opens an inline annotation from the keyboard", () => {
+        render(
+            <CandidateTranscriptCanvas
+                answerText="I checked the shipment records and corrected the count."
+                projection={createProjection()}
+                isCurrent
+            />,
+        );
+
+        const trigger = screen.getByRole("button", { name: "checked the shipment records" });
+        fireEvent.keyDown(trigger, { key: "Enter" });
+
+        expect(screen.getByText("Evidence in your answer")).toBeInTheDocument();
+    });
+
     it("supports the compact hover disclosure without repeating the indicator label", () => {
         render(
             <CandidateTranscriptCanvas
@@ -40,6 +55,7 @@ describe("CandidateTranscriptCanvas", () => {
         const trigger = screen.getByRole("button", {
             name: "checked the shipment records",
         });
+        expect(trigger.tagName).toBe("SPAN");
         fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
 
         expect(screen.getByText("What I noticed")).toBeInTheDocument();

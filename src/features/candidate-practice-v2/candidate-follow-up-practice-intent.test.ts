@@ -170,6 +170,45 @@ describe("candidate follow-up practice intent", () => {
         });
     });
 
+    it("blocks follow-up intent resolution while the same prep context has an active session", () => {
+        const sourceSession = createPracticeSession({
+            candidatePracticeSessionId: "session-completed",
+            candidateProfileId: "candidate-1",
+            answeredSlotIds: ["slot-1"],
+            analyzedSlotIds: ["slot-1"],
+        });
+        const activeSession = createPracticeSession({
+            candidatePracticeSessionId: "session-active",
+            candidateProfileId: "candidate-1",
+            status: "in_progress",
+        });
+
+        expect(resolveCandidateFollowUpPracticeIntent({
+            intent: parseCandidateFollowUpPracticeIntent({
+                intent: "coach-update-feedback-focus",
+                fromSession: "session-completed",
+                questionKey: "slot-1",
+            }),
+            candidateProfileId: "candidate-1",
+            practiceSessions: [sourceSession, activeSession],
+        })).toBeNull();
+
+        expect(resolveCandidateFollowUpPracticeIntent({
+            intent: parseCandidateFollowUpPracticeIntent({
+                intent: "coach-update-feedback-focus",
+                fromSession: "session-completed",
+                questionKey: "slot-1",
+            }),
+            candidateProfileId: "candidate-1",
+            practiceSessions: [sourceSession, {
+                ...activeSession,
+                roleProfileId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            }],
+        })).toMatchObject({
+            source: { candidatePracticeSessionId: "session-completed" },
+        });
+    });
+
     it("fails closed for cross-candidate, context-mismatched, stale, or semantically wrong intents", () => {
         const feedbackIntent = parseCandidateFollowUpPracticeIntent({
             intent: "coach-update-feedback-focus",
@@ -369,6 +408,7 @@ function createPracticeSession({
     candidatePracticeSessionId,
     candidateProfileId,
     roleProfileId = null,
+    status = "completed",
     answeredSlotIds = [],
     analyzedSlotIds = [],
     followUpSourceQuestionNumber,
@@ -376,6 +416,7 @@ function createPracticeSession({
     candidatePracticeSessionId: string;
     candidateProfileId: string;
     roleProfileId?: string | null;
+    status?: CandidatePracticeSessionRecord["status"];
     answeredSlotIds?: string[];
     analyzedSlotIds?: string[];
     followUpSourceQuestionNumber?: number;
@@ -432,13 +473,13 @@ function createPracticeSession({
         candidateProfileId,
         roleProfileId,
         candidateLaunchSessionId: null,
-        status: "completed",
+        status,
         setupSnapshot,
         questionPlanSnapshot,
         questionWordingSnapshot,
         questionWordingStatus: "worded",
         progress: {
-            status: "completed",
+            status: status === "completed" ? "completed" : "live_question",
             currentQuestionIndex: 0,
         },
         answerDrafts: {},
@@ -464,7 +505,7 @@ function createPracticeSession({
             },
         })])),
         feedbackActionEvents: {},
-        completionSnapshot: {
+        completionSnapshot: status === "completed" ? {
             status: "candidate_session_completed",
             audience: "candidate_led",
             sessionId: candidatePracticeSessionId,
@@ -482,6 +523,6 @@ function createPracticeSession({
                 currentQuestionIndex: 0,
             },
             nextRoute: "/candidate/dashboard",
-        },
+        } : null,
     };
 }

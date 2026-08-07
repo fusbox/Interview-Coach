@@ -6,6 +6,10 @@ import {
     createAiEvalScenarioDraftAction,
     runAiEvalScenariosAction,
 } from "@/app/qa/ai-eval/actions";
+import {
+    PendingServerActionForm,
+    PendingSubmitButton,
+} from "@/components/ui/pending-server-action-form";
 
 export type AiEvalScenarioCaseOption = {
     scenarioVersionId: string;
@@ -90,21 +94,21 @@ function VersionActions({
                 />
                 <span className="sr-only">Select {version.title} {label}</span>
             </label>
-            <form action={createAiEvalScenarioDraftAction}>
+            <PendingServerActionForm action={createAiEvalScenarioDraftAction}>
                 <input type="hidden" name="creationRequestKey" value={crypto.randomUUID()} />
                 <input type="hidden" name="sourceVersionId" value={version.scenarioVersionId} />
-                <button type="submit" className="button button--quiet" aria-label={`Clone ${label}`}>
+                <PendingSubmitButton className="button button--quiet" aria-label={`Clone ${label}`}>
                     Clone
-                </button>
-            </form>
-            <form action={runAiEvalScenariosAction}>
+                </PendingSubmitButton>
+            </PendingServerActionForm>
+            <PendingServerActionForm action={runAiEvalScenariosAction}>
                 <input type="hidden" name="creationRequestKey" value={crypto.randomUUID()} />
                 <input type="hidden" name="runScope" value="selected" />
                 <input type="hidden" name="scenarioVersionId" value={version.scenarioVersionId} />
-                <button type="submit" className="button button--quiet" aria-label={`Run one ${label}`}>
+                <PendingSubmitButton className="button button--quiet" aria-label={`Run one ${label}`}>
                     Run one
-                </button>
-            </form>
+                </PendingSubmitButton>
+            </PendingServerActionForm>
         </div>
     );
 }

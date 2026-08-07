@@ -141,8 +141,8 @@
     display: flex;
     min-height: inherit;
     flex-direction: column;
-    gap: var(--space-5);
-    padding: var(--space-4) var(--space-5) var(--space-5);
+    gap: var(--space-6);
+    padding: var(--space-5) var(--space-6) var(--space-6);
 }
 
 .questionMeta {
@@ -177,7 +177,7 @@
     font-weight: var(--font-weight-semibold);
     letter-spacing: 0;
     line-height: 1.25;
-    text-wrap: pretty;
+    text-wrap: wrap;
 }
 
 .question h1:focus {
@@ -212,7 +212,7 @@
     min-height: inherit;
     flex-direction: column;
     gap: 0;
-    padding: 0 0 calc(var(--cutout-notch-depth) + var(--space-2));
+    padding: 0 0 calc(var(--cutout-notch-depth) + var(--space-4));
 }
 
 .composerGateSurface {
@@ -237,7 +237,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-4);
-    padding-inline: var(--space-5);
+    padding-inline: var(--space-6);
 }
 
 .answerHeader h2,
@@ -315,8 +315,8 @@
     min-height: 0;
     flex: 1 1 0;
     overflow: hidden;
-    margin-inline: var(--space-5);
-    margin-bottom: calc(var(--button-height) + var(--space-2));
+    margin-inline: var(--space-6);
+    margin-bottom: var(--space-4);
 }
 
 .field textarea {
@@ -324,7 +324,7 @@
     min-height: 0;
     height: 100%;
     resize: none;
-    padding: var(--space-2) 0;
+    padding: var(--space-3) 0;
     border: 1px solid transparent;
     border-radius: var(--radius-input);
     outline: none;
@@ -347,6 +347,7 @@
 .submittedAnswer {
     display: grid;
     gap: var(--space-3);
+    margin-inline: var(--space-6);
 }
 
 .submittedAnswer > div,
@@ -401,9 +402,9 @@
 
 .answerFooter {
     position: absolute;
-    right: var(--space-2);
-    bottom: var(--space-2);
-    left: calc(var(--cutout-notch-width) + var(--space-3));
+    right: var(--space-4);
+    bottom: var(--space-4);
+    left: calc(var(--cutout-notch-width) + var(--space-4));
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -534,8 +535,8 @@
     }
 
     .questionBody {
-        gap: var(--space-4);
-        padding: var(--space-3) var(--space-4) var(--space-4);
+        gap: var(--space-5);
+        padding: var(--space-4) var(--space-5) var(--space-5);
     }
 
     .question h1 {
@@ -544,7 +545,7 @@
     }
 
     .composerContent {
-        padding-bottom: calc(var(--cutout-notch-depth) + var(--space-2));
+        padding-bottom: calc(var(--cutout-notch-depth) + var(--space-4));
     }
 
     .shell[data-interaction-gated="true"] .composerContent {
@@ -606,7 +607,11 @@
     .field,
     .answerHeader {
         margin-inline: 0;
-        padding-inline: var(--space-4);
+        padding-inline: var(--space-5);
+    }
+
+    .submittedAnswer {
+        margin-inline: var(--space-5);
     }
 }
 

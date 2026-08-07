@@ -9,9 +9,19 @@ import {
     type CandidateQuestionWordingResult,
 } from "@/features/candidate-session-v2/candidate-question-wording";
 
-export type CandidatePracticePlanBaselineSnapshot = CandidateQuestionPlan & {
+export type CandidatePracticePlanBaselineV1Snapshot = CandidateQuestionPlan & {
     status: "candidate_practice_plan_baseline_v1";
 };
+
+export type CandidatePracticePlanBaselineV2Snapshot = CandidateQuestionPlan & {
+    status: "candidate_practice_plan_baseline_v2";
+    stageRecommendedQuestionCount: number;
+    paceSize: number;
+};
+
+export type CandidatePracticePlanBaselineSnapshot =
+    | CandidatePracticePlanBaselineV1Snapshot
+    | CandidatePracticePlanBaselineV2Snapshot;
 
 const stageBaselineQuestionCounts: Record<CandidateSetupStageId, number> = {
     practice_only: 5,
@@ -27,12 +37,16 @@ export function getCandidateStageBaselineQuestionCount(interviewStage: Candidate
 
 export function createCandidatePracticePlanBaseline(
     interviewStage: CandidateSetupStageId,
-): CandidatePracticePlanBaselineSnapshot {
+    selectedQuestionCount = getCandidateStageBaselineQuestionCount(interviewStage),
+): CandidatePracticePlanBaselineV2Snapshot {
+    const stageRecommendedQuestionCount = getCandidateStageBaselineQuestionCount(interviewStage);
     return {
-        status: "candidate_practice_plan_baseline_v1",
+        status: "candidate_practice_plan_baseline_v2",
+        stageRecommendedQuestionCount,
+        paceSize: selectedQuestionCount,
         ...createCandidateQuestionPlan({
             interviewStage,
-            questionCount: getCandidateStageBaselineQuestionCount(interviewStage),
+            questionCount: Math.max(stageRecommendedQuestionCount, selectedQuestionCount),
         }),
     };
 }
@@ -53,26 +67,22 @@ export function createCandidateQuestionGenerationPlan({
 export function deriveCandidateInitialRoundPlan({
     baseline,
     generationPlan,
-    selectedQuestionCount,
 }: {
     baseline: CandidatePracticePlanBaselineSnapshot;
     generationPlan: CandidateQuestionPlan;
-    selectedQuestionCount: number;
 }) {
     return createCandidateQuestionPlanFromSlots({
         interviewStage: baseline.interviewStage,
-        slots: generationPlan.slots.slice(0, selectedQuestionCount).map((slot, index) => {
+        slots: generationPlan.slots.slice(0, baseline.questionCount).map((slot, index) => {
             const baselineSlot = baseline.slots[index];
-            return baselineSlot
-                ? {
-                    ...slot,
-                    planQuestionId: baselineSlot.id,
-                    coverageKind: "baseline" as const,
-                }
-                : {
-                    ...slot,
-                    coverageKind: "supplemental" as const,
-                };
+            if (!baselineSlot) {
+                throw new Error("Canonical initial-session plan must match the persisted baseline.");
+            }
+            return {
+                ...slot,
+                planQuestionId: baselineSlot.id,
+                coverageKind: "baseline" as const,
+            };
         }),
     });
 }
@@ -106,16 +116,44 @@ export function deriveCandidateInitialRoundWording({
 export function parseCandidatePracticePlanBaselineSnapshot(
     value: unknown,
 ): CandidatePracticePlanBaselineSnapshot | null {
-    if (!isObject(value) || value.status !== "candidate_practice_plan_baseline_v1") {
+    if (
+        !isObject(value)
+        || (
+            value.status !== "candidate_practice_plan_baseline_v1"
+            && value.status !== "candidate_practice_plan_baseline_v2"
+        )
+    ) {
         return null;
     }
     const interviewStage = candidateSetupStageOptions.find((stage) => stage.id === value.interviewStage)?.id;
     if (!interviewStage) {
         return null;
     }
-    const expected = createCandidatePracticePlanBaseline(interviewStage);
+    const stageRecommendedQuestionCount = getCandidateStageBaselineQuestionCount(interviewStage);
+    const questionCount = readBoundedQuestionCount(value.questionCount);
+    if (!questionCount) {
+        return null;
+    }
+    if (value.status === "candidate_practice_plan_baseline_v1" && questionCount !== stageRecommendedQuestionCount) {
+        return null;
+    }
+    if (value.status === "candidate_practice_plan_baseline_v2") {
+        const persistedStageRecommendedQuestionCount = readBoundedQuestionCount(
+            value.stageRecommendedQuestionCount,
+        );
+        const paceSize = readBoundedQuestionCount(value.paceSize);
+        if (
+            !persistedStageRecommendedQuestionCount
+            || !paceSize
+            || questionCount < persistedStageRecommendedQuestionCount
+            || paceSize > questionCount
+        ) {
+            return null;
+        }
+    }
+    const expected = createCandidateQuestionPlan({ interviewStage, questionCount });
     if (
-        value.questionCount !== expected.questionCount
+        questionCount !== expected.questionCount
         || !Array.isArray(value.slots)
         || value.slots.length !== expected.slots.length
     ) {
@@ -135,4 +173,10 @@ export function parseCandidatePracticePlanBaselineSnapshot(
 
 function isObject(value: unknown): value is Record<string, unknown> {
     return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readBoundedQuestionCount(value: unknown) {
+    return typeof value === "number" && Number.isInteger(value) && value >= 3 && value <= 10
+        ? value
+        : null;
 }

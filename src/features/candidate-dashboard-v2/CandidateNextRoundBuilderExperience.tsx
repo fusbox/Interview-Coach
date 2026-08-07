@@ -4,7 +4,7 @@ import {
     ArrowDown,
     ArrowRight,
     ArrowUp,
-    ClipboardList,
+    Loader2,
     Plus,
     Trash2,
     X,
@@ -14,6 +14,7 @@ import {
     useCallback,
     useContext,
     useEffect,
+    useLayoutEffect,
     useMemo,
     useRef,
     useState,
@@ -24,6 +25,7 @@ import {
 
 import type { CandidateNextRoundBuilderModel } from "@/features/candidate-practice-v2/candidate-next-round-builder";
 import type { CandidateNextRoundBuilderMutation } from "@/features/candidate-practice-v2/candidate-next-round-builder-service";
+import { CandidateOpenedSurfaceHeader } from "@/features/candidate-v2/CandidateOpenedSurfaceHeader";
 
 type BuilderRequestResult = {
     ok: boolean;
@@ -52,10 +54,16 @@ type CandidateNextRoundChoiceMutationResult = BuilderRequestResult & {
 
 type CandidateNextRoundBuilderController = {
     builder: CandidateNextRoundBuilderModel;
-    openBuilder: (anchor?: DOMRect | null, returnFocusTo?: HTMLElement | null) => void;
+    isOpen: boolean;
+    openBuilder: (returnFocusTo?: HTMLElement | null) => void;
     resolveChoice: (pointer: CandidateNextRoundChoicePointer) => CandidateNextRoundChoiceState | null;
     toggleChoice: (pointer: CandidateNextRoundChoicePointer) => Promise<CandidateNextRoundChoiceMutationResult>;
     busyChoiceKey: string | null;
+};
+
+type CandidateNextRoundBusyAction = {
+    announcement: string;
+    key: string;
 };
 
 type CandidateNextRoundBuilderExperienceProps = {
@@ -80,29 +88,35 @@ export function CandidateNextRoundBuilderExperience({
 }: CandidateNextRoundBuilderExperienceProps) {
     const [builder, setBuilder] = useState(initialBuilder);
     const [isOpen, setIsOpen] = useState(false);
-    const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
     const [busyChoiceKey, setBusyChoiceKey] = useState<string | null>(null);
     const busyChoiceRef = useRef<string | null>(null);
     const returnFocusRef = useRef<HTMLElement | null>(null);
+    const contentRef = useRef<HTMLDivElement | null>(null);
+
+    useLayoutEffect(() => {
+        const content = contentRef.current;
+        if (!content) return;
+        if (isOpen) content.setAttribute("inert", "");
+        else content.removeAttribute("inert");
+        return () => content.removeAttribute("inert");
+    }, [isOpen]);
 
     useEffect(() => {
         setBuilder(initialBuilder);
         setIsOpen(false);
-        setAnchorRect(null);
         setBusyChoiceKey(null);
         busyChoiceRef.current = null;
     }, [initialBuilder]);
 
-    const openBuilder = useCallback((anchor?: DOMRect | null, returnFocusTo?: HTMLElement | null) => {
-        setAnchorRect(anchor ?? null);
+    const openBuilder = useCallback((returnFocusTo?: HTMLElement | null) => {
         returnFocusRef.current = returnFocusTo ?? (document.activeElement instanceof HTMLElement
             ? document.activeElement
             : null);
         setIsOpen(true);
     }, []);
     const closeBuilder = useCallback(() => {
+        contentRef.current?.removeAttribute("inert");
         setIsOpen(false);
-        setAnchorRect(null);
         window.requestAnimationFrame(() => returnFocusRef.current?.focus());
     }, []);
     const resolveChoice = useCallback((pointer: CandidateNextRoundChoicePointer) => (
@@ -146,19 +160,26 @@ export function CandidateNextRoundBuilderExperience({
     }, [builder, requestMutation]);
     const controller = useMemo(() => ({
         builder,
+        isOpen,
         openBuilder,
         resolveChoice,
         toggleChoice,
         busyChoiceKey,
-    }), [builder, busyChoiceKey, openBuilder, resolveChoice, toggleChoice]);
+    }), [builder, busyChoiceKey, isOpen, openBuilder, resolveChoice, toggleChoice]);
 
     return (
         <CandidateNextRoundBuilderContext.Provider value={controller}>
-            {children}
+            <div
+                ref={contentRef}
+                className="candidate-next-round-builder-content"
+                data-next-round-builder-content
+                aria-hidden={isOpen || undefined}
+            >
+                {children}
+            </div>
             {isOpen ? (
                 <CandidateNextRoundBuilderDialog
                     builder={builder}
-                    anchorRect={anchorRect}
                     onBuilderChange={setBuilder}
                     onClose={closeBuilder}
                     requestMutation={requestMutation}
@@ -170,36 +191,36 @@ export function CandidateNextRoundBuilderExperience({
     );
 }
 
-export function CandidateNextRoundBuilderTrigger() {
+export function CandidateNextRoundReviewFooter({
+    className,
+}: {
+    className?: string;
+}) {
     const controller = useContext(CandidateNextRoundBuilderContext);
     const triggerRef = useRef<HTMLButtonElement | null>(null);
-    if (!controller) {
-        return null;
-    }
+    if (!controller || controller.builder.itemCount < 1) return null;
 
+    const count = controller.builder.itemCount;
     return (
-        <button
-            className={`candidate-dashboard-next-link candidate-dashboard-next-link--builder${controller.builder.itemCount > 0 ? " has-items" : ""}`}
-            ref={triggerRef}
-            type="button"
-            aria-haspopup="dialog"
-            aria-label={controller.builder.itemCount > 0
-                ? `Next practice round, ${controller.builder.itemCount} queued`
-                : "Next practice round"}
-            onClick={() => {
-                const trigger = triggerRef.current;
-                const useAnchor = window.matchMedia("(min-width: 48rem)").matches;
-                controller.openBuilder(useAnchor && trigger ? trigger.getBoundingClientRect() : null, trigger);
-            }}
+        <footer
+            className={`candidate-next-round-review-footer${className ? ` ${className}` : ""}`}
+            role="group"
+            aria-label={`Next round, ${count} ${count === 1 ? "question" : "questions"}`}
         >
-            <ClipboardList size={18} aria-hidden="true" />
-            <span className="candidate-dashboard-next-link__label">Next practice round</span>
-            {controller.builder.itemCount > 0 ? (
-                <span className="candidate-next-round-count" aria-hidden="true">
-                    {controller.builder.itemCount}
-                </span>
-            ) : null}
-        </button>
+            <span className="candidate-next-round-review-footer__label">Next round</span>
+            <span className="candidate-next-round-review-footer__count" aria-hidden="true">
+                {count}
+            </span>
+            <button
+                ref={triggerRef}
+                type="button"
+                aria-haspopup="dialog"
+                onClick={() => controller.openBuilder(triggerRef.current)}
+            >
+                Review next round
+                <ArrowRight size={16} aria-hidden="true" />
+            </button>
+        </footer>
     );
 }
 
@@ -239,7 +260,6 @@ export function resolveCandidateNextRoundChoiceState(
 
 function CandidateNextRoundBuilderDialog({
     builder,
-    anchorRect,
     onBuilderChange,
     onClose,
     requestMutation,
@@ -247,7 +267,6 @@ function CandidateNextRoundBuilderDialog({
     navigate,
 }: {
     builder: CandidateNextRoundBuilderModel;
-    anchorRect: DOMRect | null;
     onBuilderChange: (builder: CandidateNextRoundBuilderModel) => void;
     onClose: () => void;
     requestMutation: NonNullable<CandidateNextRoundBuilderExperienceProps["requestMutation"]>;
@@ -258,7 +277,7 @@ function CandidateNextRoundBuilderDialog({
     const clearConfirmDialogRef = useRef<HTMLElement | null>(null);
     const closeButtonRef = useRef<HTMLButtonElement | null>(null);
     const clearConfirmCancelRef = useRef<HTMLButtonElement | null>(null);
-    const [busyAction, setBusyAction] = useState<string | null>(null);
+    const [busyAction, setBusyAction] = useState<CandidateNextRoundBusyAction | null>(null);
     const busyActionRef = useRef<string | null>(null);
     const [notice, setNotice] = useState<{ kind: "info" | "error"; message: string } | null>(null);
     const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
@@ -268,6 +287,8 @@ function CandidateNextRoundBuilderDialog({
     const [sheetDragOffset, setSheetDragOffset] = useState(0);
     const [isSheetDragging, setIsSheetDragging] = useState(false);
     const availableChoices = builder.choices.filter((choice) => !choice.isQueued);
+    const isBusy = Boolean(busyAction);
+    const isLaunching = busyAction?.key === "launch";
 
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
@@ -285,6 +306,7 @@ function CandidateNextRoundBuilderDialog({
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") {
                 event.preventDefault();
+                if (isLaunching) return;
                 if (isClearConfirmOpen) {
                     setIsClearConfirmOpen(false);
                 } else {
@@ -313,7 +335,7 @@ function CandidateNextRoundBuilderDialog({
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
         };
-    }, [isClearConfirmOpen, onClose]);
+    }, [isClearConfirmOpen, isLaunching, onClose]);
 
     useEffect(() => {
         if (isClearConfirmOpen) {
@@ -321,10 +343,13 @@ function CandidateNextRoundBuilderDialog({
         }
     }, [isClearConfirmOpen]);
 
-    const mutate = async (mutation: CandidateNextRoundBuilderMutation) => {
+    const mutate = async (
+        mutation: CandidateNextRoundBuilderMutation,
+        pendingAction: CandidateNextRoundBusyAction,
+    ) => {
         if (busyActionRef.current) return;
-        busyActionRef.current = mutation.kind;
-        setBusyAction(mutation.kind);
+        busyActionRef.current = pendingAction.key;
+        setBusyAction(pendingAction);
         setNotice(null);
         try {
             const result = await requestMutation(builder, mutation);
@@ -349,11 +374,16 @@ function CandidateNextRoundBuilderDialog({
     const launch = async () => {
         if (busyActionRef.current || builder.itemCount < 1) return;
         busyActionRef.current = "launch";
-        setBusyAction("launch");
+        setBusyAction({
+            key: "launch",
+            announcement: "Preparing your next round.",
+        });
         setNotice(null);
+        let releasePending = true;
         try {
             const result = await requestLaunch(builder);
             if (result.redirectTo) {
+                releasePending = false;
                 navigate(result.redirectTo);
                 return;
             }
@@ -366,8 +396,10 @@ function CandidateNextRoundBuilderDialog({
         } catch {
             setNotice({ kind: "error", message: "I couldn't start this round. Your saved items are still here." });
         } finally {
-            busyActionRef.current = null;
-            setBusyAction(null);
+            if (releasePending) {
+                busyActionRef.current = null;
+                setBusyAction(null);
+            }
         }
     };
 
@@ -376,7 +408,16 @@ function CandidateNextRoundBuilderDialog({
         if (nextIndex < 0 || nextIndex >= builder.items.length) return;
         const orderedItemIds = builder.items.map((item) => item.candidateNextRoundDraftItemId);
         [orderedItemIds[index], orderedItemIds[nextIndex]] = [orderedItemIds[nextIndex], orderedItemIds[index]];
-        void mutate({ kind: "reorder", orderedItemIds });
+        const item = builder.items[index];
+        if (!item) return;
+        const direction = offset === -1 ? "up" : "down";
+        void mutate(
+            { kind: "reorder", orderedItemIds },
+            {
+                key: `reorder:${item.candidateNextRoundDraftItemId}:${direction}`,
+                announcement: `Moving question ${item.questionNumber} ${direction}.`,
+            },
+        );
     };
 
     const resetSheetDrag = () => {
@@ -387,7 +428,7 @@ function CandidateNextRoundBuilderDialog({
     };
 
     const handleSheetPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-        if (isClearConfirmOpen || (event.pointerType === "mouse" && event.button !== 0)) return;
+        if (isClearConfirmOpen || isLaunching || (event.pointerType === "mouse" && event.button !== 0)) return;
         sheetDragRef.current = {
             pointerId: event.pointerId,
             startY: event.clientY,
@@ -417,13 +458,7 @@ function CandidateNextRoundBuilderDialog({
         if (shouldClose) onClose();
     };
 
-    const anchoredStyle = anchorRect ? ({
-        "--next-round-anchor-top": `${Math.max(anchorRect.top - 20, 12)}px`,
-        "--next-round-anchor-right": `${Math.max(window.innerWidth - anchorRect.right, 12)}px`,
-        "--next-round-anchor-width": `${anchorRect.width}px`,
-    } as CSSProperties) : undefined;
     const dialogStyle = {
-        ...anchoredStyle,
         "--candidate-next-round-sheet-offset": `${sheetDragOffset}px`,
     } as CSSProperties;
 
@@ -432,16 +467,17 @@ function CandidateNextRoundBuilderDialog({
             className="candidate-next-round-backdrop"
             data-testid="candidate-next-round-backdrop"
             onPointerDown={(event) => {
-                if (event.target === event.currentTarget) onClose();
+                if (event.target === event.currentTarget && !isLaunching) onClose();
             }}
         >
             <section
-                className={`candidate-next-round-dialog${anchorRect ? " is-anchored" : ""}${isExpanded ? " is-expanded" : ""}${isSheetDragging ? " is-sheet-dragging" : ""}`}
+                className={`candidate-next-round-dialog${isExpanded ? " is-expanded" : ""}${isSheetDragging ? " is-sheet-dragging" : ""}`}
                 style={dialogStyle}
                 ref={dialogRef}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="candidate-next-round-title"
+                aria-busy={isBusy || undefined}
             >
                 <div
                     className="candidate-next-round-dialog__grabber"
@@ -454,21 +490,27 @@ function CandidateNextRoundBuilderDialog({
                 >
                     <span />
                 </div>
-                <header
+                <CandidateOpenedSurfaceHeader
                     className="candidate-next-round-dialog__header"
+                    badge={{
+                        label: `${builder.itemCount} ${builder.itemCount === 1 ? "question" : "questions"} queued`,
+                        value: builder.itemCount,
+                    }}
+                    closeButtonRef={closeButtonRef}
+                    closeDisabled={isLaunching}
+                    closeLabel="Close Next round"
+                    onClose={onClose}
+                    title="Next round"
+                    titleId="candidate-next-round-title"
                     aria-hidden={isClearConfirmOpen || undefined}
                     inert={isClearConfirmOpen || undefined}
-                >
-                    <div className="candidate-next-round-dialog__title-row">
-                        <h2 id="candidate-next-round-title">Next practice round</h2>
-                        <span aria-label={`${builder.itemCount} ${builder.itemCount === 1 ? "question" : "questions"} queued`}>
-                            {builder.itemCount}
-                        </span>
-                    </div>
-                    <button ref={closeButtonRef} type="button" onClick={onClose} aria-label="Close next practice round">
-                        <X size={19} aria-hidden="true" />
-                    </button>
-                </header>
+                />
+
+                {busyAction ? (
+                    <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                        {busyAction.announcement}
+                    </span>
+                ) : null}
 
                 <div
                     className="candidate-next-round-dialog__body"
@@ -481,93 +523,133 @@ function CandidateNextRoundBuilderDialog({
                         </p>
                     ) : null}
 
-                    <section className="candidate-next-round-section" aria-labelledby="candidate-next-round-queued-title">
-                        <h3 className="sr-only" id="candidate-next-round-queued-title">Queued questions</h3>
-                        {builder.items.length > 0 ? (
+                    {builder.items.length > 0 ? (
+                        <section className="candidate-next-round-section candidate-next-round-section--queue" aria-labelledby="candidate-next-round-queued-title">
+                            <h3 className="sr-only" id="candidate-next-round-queued-title">Questions in your next round</h3>
                             <ol className="candidate-next-round-list">
-                                {builder.items.map((item, index) => (
-                                    <li key={item.candidateNextRoundDraftItemId}>
-                                        <div className="candidate-next-round-item__meta">
-                                            <span>Q{item.questionNumber}:</span>
-                                            <span>{item.category}</span>
-                                        </div>
-                                        <p>{item.questionText}</p>
-                                        <div className="candidate-next-round-item__actions">
-                                            <button
-                                                type="button"
-                                                disabled={index === 0 || Boolean(busyAction)}
-                                                onClick={() => moveItem(index, -1)}
-                                                aria-label={`Move question ${item.questionNumber} up`}
-                                            >
-                                                <ArrowUp size={16} aria-hidden="true" />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                disabled={index === builder.items.length - 1 || Boolean(busyAction)}
-                                                onClick={() => moveItem(index, 1)}
-                                                aria-label={`Move question ${item.questionNumber} down`}
-                                            >
-                                                <ArrowDown size={16} aria-hidden="true" />
-                                            </button>
-                                            <button
-                                                className="is-remove"
-                                                type="button"
-                                                disabled={Boolean(busyAction)}
-                                                onClick={() => void mutate({
-                                                    kind: "remove",
-                                                    candidateNextRoundDraftItemId: item.candidateNextRoundDraftItemId,
-                                                })}
-                                                aria-label={`Remove question ${item.questionNumber} from next practice round`}
-                                            >
-                                                <X size={16} aria-hidden="true" />
-                                            </button>
-                                        </div>
-                                    </li>
-                                ))}
+                                {builder.items.map((item, index) => {
+                                    const moveUpKey = `reorder:${item.candidateNextRoundDraftItemId}:up`;
+                                    const moveDownKey = `reorder:${item.candidateNextRoundDraftItemId}:down`;
+                                    const removeKey = `remove:${item.candidateNextRoundDraftItemId}`;
+                                    const pendingItemAction = busyAction?.key === moveUpKey
+                                        || busyAction?.key === moveDownKey
+                                        || busyAction?.key === removeKey;
+                                    return (
+                                        <li
+                                            key={item.candidateNextRoundDraftItemId}
+                                            aria-busy={pendingItemAction || undefined}
+                                            data-state={pendingItemAction ? "updating" : undefined}
+                                        >
+                                            <div className="candidate-next-round-item__meta">
+                                                <span>Q{item.questionNumber}:</span>
+                                                <span>{item.category}</span>
+                                            </div>
+                                            <p>{item.questionText}</p>
+                                            <div className="candidate-next-round-item__actions">
+                                                <button
+                                                    type="button"
+                                                    disabled={index === 0 || Boolean(busyAction)}
+                                                    onClick={() => moveItem(index, -1)}
+                                                    aria-label={`Move question ${item.questionNumber} up`}
+                                                    aria-busy={busyAction?.key === moveUpKey || undefined}
+                                                >
+                                                    {busyAction?.key === moveUpKey
+                                                        ? <Loader2 className="ui-button__spinner candidate-next-round-inline-spinner" aria-hidden="true" />
+                                                        : <ArrowUp size={16} aria-hidden="true" />}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={index === builder.items.length - 1 || Boolean(busyAction)}
+                                                    onClick={() => moveItem(index, 1)}
+                                                    aria-label={`Move question ${item.questionNumber} down`}
+                                                    aria-busy={busyAction?.key === moveDownKey || undefined}
+                                                >
+                                                    {busyAction?.key === moveDownKey
+                                                        ? <Loader2 className="ui-button__spinner candidate-next-round-inline-spinner" aria-hidden="true" />
+                                                        : <ArrowDown size={16} aria-hidden="true" />}
+                                                </button>
+                                                <button
+                                                    className="is-remove"
+                                                    type="button"
+                                                    disabled={Boolean(busyAction)}
+                                                    onClick={() => void mutate(
+                                                        {
+                                                            kind: "remove",
+                                                            candidateNextRoundDraftItemId: item.candidateNextRoundDraftItemId,
+                                                        },
+                                                        {
+                                                            key: removeKey,
+                                                            announcement: `Removing question ${item.questionNumber} from your next round.`,
+                                                        },
+                                                    )}
+                                                    aria-label={`Remove question ${item.questionNumber} from next round`}
+                                                    aria-busy={busyAction?.key === removeKey || undefined}
+                                                >
+                                                    {busyAction?.key === removeKey
+                                                        ? <Loader2 className="ui-button__spinner candidate-next-round-inline-spinner" aria-hidden="true" />
+                                                        : <X size={16} aria-hidden="true" />}
+                                                </button>
+                                            </div>
+                                        </li>
+                                    );
+                                })}
                             </ol>
-                        ) : (
-                            <div className="candidate-next-round-empty">
-                                <ClipboardList size={20} aria-hidden="true" />
-                                <p>Add questions from your Coach Plan to build this round.</p>
-                            </div>
-                        )}
-                    </section>
+                        </section>
+                    ) : null}
 
                     <section className="candidate-next-round-section" aria-labelledby="candidate-next-round-available-title">
                         <div className="candidate-next-round-section__heading">
-                            <h3 id="candidate-next-round-available-title">Available to add</h3>
+                            <h3 id="candidate-next-round-available-title">Coach Plan</h3>
+                            <span>Available to add</span>
                         </div>
                         {builder.itemCount >= builder.capacity ? (
                             <p className="candidate-next-round-section__complete">Round is full.</p>
                         ) : availableChoices.length > 0 ? (
                             <ul className="candidate-next-round-choices">
-                                {availableChoices.map((choice) => (
-                                    <li key={`${choice.sourceCandidatePracticeSessionId}:${choice.sourceQuestionKey}`}>
-                                        <div>
-                                            <div className="candidate-next-round-item__meta">
-                                                <span>Q{choice.questionNumber}:</span>
-                                                <span>{choice.category}</span>
-                                            </div>
-                                            <p>{choice.questionText}</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            disabled={Boolean(busyAction) || builder.itemCount >= builder.capacity}
-                                            onClick={() => void mutate({
-                                                kind: "add",
-                                                sourceCandidatePracticeSessionId: choice.sourceCandidatePracticeSessionId,
-                                                sourceQuestionKey: choice.sourceQuestionKey,
-                                            })}
-                                            aria-label={`Add question ${choice.questionNumber} to next practice round`}
+                                {availableChoices.map((choice) => {
+                                    const addKey = `add:${choice.sourceCandidatePracticeSessionId}:${choice.sourceQuestionKey}`;
+                                    const isAdding = busyAction?.key === addKey;
+                                    return (
+                                        <li
+                                            key={`${choice.sourceCandidatePracticeSessionId}:${choice.sourceQuestionKey}`}
+                                            aria-busy={isAdding || undefined}
+                                            data-state={isAdding ? "updating" : undefined}
                                         >
-                                            <Plus size={17} aria-hidden="true" />
-                                            <span>Add</span>
-                                        </button>
-                                    </li>
-                                ))}
+                                            <div>
+                                                <div className="candidate-next-round-item__meta">
+                                                    <span>Q{choice.questionNumber}:</span>
+                                                    <span>{choice.category}</span>
+                                                </div>
+                                                <p>{choice.questionText}</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                disabled={Boolean(busyAction) || builder.itemCount >= builder.capacity}
+                                                onClick={() => void mutate(
+                                                    {
+                                                        kind: "add",
+                                                        sourceCandidatePracticeSessionId: choice.sourceCandidatePracticeSessionId,
+                                                        sourceQuestionKey: choice.sourceQuestionKey,
+                                                    },
+                                                    {
+                                                        key: addKey,
+                                                        announcement: `Adding question ${choice.questionNumber} to your next round.`,
+                                                    },
+                                                )}
+                                                aria-label={`Add question ${choice.questionNumber} to next round`}
+                                                aria-busy={isAdding || undefined}
+                                            >
+                                                {isAdding
+                                                    ? <Loader2 className="ui-button__spinner candidate-next-round-inline-spinner" aria-hidden="true" />
+                                                    : <Plus size={17} aria-hidden="true" />}
+                                                <span>{isAdding ? "Adding..." : "Add"}</span>
+                                            </button>
+                                        </li>
+                                    );
+                                })}
                             </ul>
                         ) : (
-                            <p className="candidate-next-round-section__complete">Every eligible question is already in this round.</p>
+                            <p className="candidate-next-round-section__complete">Every available Plan question is already in your next round.</p>
                         )}
                     </section>
                 </div>
@@ -577,24 +659,30 @@ function CandidateNextRoundBuilderDialog({
                     aria-hidden={isClearConfirmOpen || undefined}
                     inert={isClearConfirmOpen || undefined}
                 >
-                    <button className="is-cancel" type="button" onClick={onClose}>Cancel</button>
+                    <button className="is-cancel" type="button" disabled={isLaunching} onClick={onClose}>Cancel</button>
                     <button
                         className="is-clear"
                         type="button"
                         disabled={builder.itemCount < 1 || Boolean(busyAction)}
                         onClick={() => setIsClearConfirmOpen(true)}
+                        aria-busy={busyAction?.key === "clear" || undefined}
                     >
-                        Clear all
-                        <Trash2 size={16} aria-hidden="true" />
+                        {busyAction?.key === "clear" ? "Clearing..." : "Clear all"}
+                        {busyAction?.key === "clear"
+                            ? <Loader2 className="ui-button__spinner candidate-next-round-inline-spinner" aria-hidden="true" />
+                            : <Trash2 size={16} aria-hidden="true" />}
                     </button>
                     <button
                         className="candidate-next-round-start"
                         type="button"
                         disabled={builder.itemCount < 1 || Boolean(busyAction)}
                         onClick={() => void launch()}
+                        aria-busy={isLaunching || undefined}
                     >
-                        {busyAction === "launch" ? "Preparing practice..." : "Start practice"}
-                        <ArrowRight size={17} aria-hidden="true" />
+                        {isLaunching ? "Preparing practice..." : "Start practice"}
+                        {isLaunching
+                            ? <Loader2 className="ui-button__spinner candidate-next-round-inline-spinner" aria-hidden="true" />
+                            : <ArrowRight size={17} aria-hidden="true" />}
                     </button>
                 </footer>
 
@@ -615,7 +703,13 @@ function CandidateNextRoundBuilderDialog({
                                     type="button"
                                     onClick={() => {
                                         setIsClearConfirmOpen(false);
-                                        void mutate({ kind: "clear" });
+                                        void mutate(
+                                            { kind: "clear" },
+                                            {
+                                                key: "clear",
+                                                announcement: "Clearing every question from your next round.",
+                                            },
+                                        );
                                     }}
                                 >
                                     Clear questions

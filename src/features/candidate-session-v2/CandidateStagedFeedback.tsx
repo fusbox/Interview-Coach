@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, RotateCcw } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, RotateCcw } from "lucide-react";
 import { createPortal } from "react-dom";
 import type { KeyboardEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -18,6 +18,13 @@ import {
 
 type CandidateStagedFeedbackProps = {
     interaction: CandidateFeedbackInteraction;
+    question: {
+        number: number;
+        count: number;
+        categoryLabel: string;
+        text: string;
+    };
+    answerText: string;
     savedActionEvent?: CandidateFeedbackActionEvent | null;
     isCompletingSession: boolean;
     completionMessage?: string | null;
@@ -29,6 +36,8 @@ type CandidateStagedFeedbackProps = {
 
 export function CandidateStagedFeedback({
     interaction,
+    question,
+    answerText,
     savedActionEvent = null,
     isCompletingSession,
     completionMessage = null,
@@ -41,11 +50,11 @@ export function CandidateStagedFeedback({
         resolveRecoveredStageId(interaction, savedActionEvent)
     ));
     const [mounted, setMounted] = useState(false);
-    const [stageDirection, setStageDirection] = useState(1);
     const [pendingActionKind, setPendingActionKind] = useState<CandidateFeedbackAction["kind"] | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
     const dialogRef = useRef<HTMLElement>(null);
-    const headingRef = useRef<HTMLHeadingElement>(null);
+    const dialogHeadingRef = useRef<HTMLHeadingElement>(null);
+    const activeStageHeadingRef = useRef<HTMLHeadingElement>(null);
     const previousStageIdRef = useRef(activeStageId);
     const recoveredActionEventRef = useRef(savedActionEvent);
     const hasAppliedRecoveredTransitionRef = useRef(false);
@@ -54,6 +63,7 @@ export function CandidateStagedFeedback({
         [activeStageId, interaction.stages],
     );
     const stageIndex = interaction.stages.findIndex((stage) => stage.id === activeStage.id);
+    const visibleStages = interaction.stages.slice(0, stageIndex + 1);
     const reduceMotion = useReducedMotion();
 
     useEffect(() => {
@@ -63,12 +73,12 @@ export function CandidateStagedFeedback({
     useEffect(() => {
         if (previousStageIdRef.current === activeStageId) return;
         previousStageIdRef.current = activeStageId;
-        headingRef.current?.focus();
+        activeStageHeadingRef.current?.focus();
     }, [activeStageId]);
 
     useEffect(() => {
         if (!mounted) return;
-        headingRef.current?.focus();
+        dialogHeadingRef.current?.focus();
 
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
@@ -114,15 +124,16 @@ export function CandidateStagedFeedback({
                     <div className="candidate-staged-feedback__identity">
                         <CandidateCoachAvatar
                             variant="surface"
+                            frame="surface"
                             className="candidate-staged-feedback__mark"
                         />
                         <h2
                             id="coach-feedback-title"
-                            ref={headingRef}
+                            ref={dialogHeadingRef}
                             className="sr-only"
                             tabIndex={-1}
                         >
-                            Coach feedback
+                            Your coaching
                         </h2>
                         <p id="coach-feedback-step" className="sr-only" aria-live="polite">
                             Feedback step {stageIndex + 1} of {interaction.stages.length}: {activeStage.label}
@@ -148,40 +159,94 @@ export function CandidateStagedFeedback({
                 </header>
 
                 <div className="candidate-staged-feedback__viewport">
-                    <AnimatePresence mode="wait" custom={stageDirection}>
-                        <motion.div
-                            key={activeStage.id}
-                            className="candidate-staged-feedback__content"
-                            custom={stageDirection}
-                            initial={reduceMotion ? false : { opacity: 0, x: stageDirection * 28 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: stageDirection * -20 }}
-                            transition={{
-                                duration: reduceMotion ? 0 : 0.18,
-                                ease: [0.22, 1, 0.36, 1],
-                            }}
-                        >
-                            <p id="coach-feedback-body" className="candidate-staged-feedback__body">
-                                {activeStage.body}
-                            </p>
+                    <details className="candidate-staged-feedback__reference">
+                        <summary>
+                            <span>
+                                <strong>Question {question.number} of {question.count}</strong>
+                                <span>{question.categoryLabel}</span>
+                            </span>
+                            <span>
+                                Review question and answer
+                                <ChevronDown size={17} aria-hidden="true" />
+                            </span>
+                        </summary>
+                        <div className="candidate-staged-feedback__reference-body">
+                            <section>
+                                <h3>Question</h3>
+                                <p>{question.text}</p>
+                            </section>
+                            <section>
+                                <h3>Your answer</h3>
+                                <p>{answerText}</p>
+                            </section>
+                        </div>
+                    </details>
 
-                            {activeStage.guidance?.length ? (
-                                <div className="candidate-staged-feedback__guidance">
-                                    {activeStage.guidance.map((item) => (
-                                        <section key={`${item.label}:${item.body}`}>
-                                            <h3>{item.label}</h3>
-                                            <p>{item.body}</p>
-                                            {item.steps?.length ? (
-                                                <ol>
-                                                    {item.steps.map((step) => <li key={step}>{step}</li>)}
-                                                </ol>
+                    <div className="candidate-staged-feedback__thread">
+                        <AnimatePresence initial={false}>
+                            {visibleStages.map((stage, index) => {
+                                const isCurrent = index === stageIndex;
+                                return (
+                                    <motion.article
+                                        key={stage.id}
+                                        className="candidate-staged-feedback__stage"
+                                        data-state={isCurrent ? "current" : "complete"}
+                                        aria-current={isCurrent ? "step" : undefined}
+                                        initial={reduceMotion || index < stageIndex
+                                            ? false
+                                            : { opacity: 0, y: 18 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{
+                                            duration: reduceMotion ? 0 : 0.22,
+                                            ease: [0.22, 1, 0.36, 1],
+                                        }}
+                                    >
+                                        <span className="candidate-staged-feedback__stage-marker" aria-hidden="true">
+                                            {isCurrent ? null : <Check size={14} />}
+                                        </span>
+                                        <div className="candidate-staged-feedback__stage-content">
+                                            <h3
+                                                ref={isCurrent ? activeStageHeadingRef : undefined}
+                                                className="sr-only"
+                                                tabIndex={isCurrent ? -1 : undefined}
+                                            >
+                                                {stage.title}
+                                            </h3>
+                                            <p
+                                                id={isCurrent ? "coach-feedback-body" : undefined}
+                                                className="candidate-staged-feedback__body"
+                                            >
+                                                {stage.body}
+                                            </p>
+
+                                            {stage.guidance?.length ? (
+                                                <div className="candidate-staged-feedback__guidance">
+                                                    {stage.guidance.map((item) => (
+                                                        <section
+                                                            key={`${item.label}:${item.body}`}
+                                                            data-kind={item.steps?.length ? "pattern" : "guidance"}
+                                                        >
+                                                            {item.steps?.length ? null : <p>{item.body}</p>}
+                                                            {item.steps?.length ? (
+                                                                <ol>
+                                                                    {item.steps.map((step, stepIndex) => (
+                                                                        <li key={step}>
+                                                                            <span aria-hidden="true">{stepIndex + 1}</span>
+                                                                            <span>{step}</span>
+                                                                        </li>
+                                                                    ))}
+                                                                </ol>
+                                                            ) : null}
+                                                        </section>
+                                                    ))}
+                                                </div>
                                             ) : null}
-                                        </section>
-                                    ))}
-                                </div>
-                            ) : null}
-                        </motion.div>
-                    </AnimatePresence>
+                                        </div>
+                                    </motion.article>
+                                );
+                            })}
+                        </AnimatePresence>
+                    </div>
                 </div>
 
                 <footer className="candidate-staged-feedback__actions">
@@ -220,7 +285,7 @@ export function CandidateStagedFeedback({
         ).filter((element) => !element.hasAttribute("hidden"));
         if (focusable.length === 0) {
             event.preventDefault();
-            headingRef.current?.focus();
+            dialogHeadingRef.current?.focus();
             return;
         }
 
@@ -255,8 +320,6 @@ export function CandidateStagedFeedback({
         switch (action.transition) {
             case "show_feedback_stage":
                 if (action.targetStageId) {
-                    const targetIndex = interaction.stages.findIndex((stage) => stage.id === action.targetStageId);
-                    setStageDirection(targetIndex >= stageIndex ? 1 : -1);
                     setActiveStageId(action.targetStageId);
                 }
                 break;
@@ -288,9 +351,18 @@ function resolveRecoveredStageId(
     if (
         event.transition === "show_feedback_stage"
         && event.targetStageId
-        && interaction.stages.some((stage) => stage.id === event.targetStageId)
     ) {
-        return event.targetStageId;
+        if (interaction.stages.some((stage) => stage.id === event.targetStageId)) {
+            return event.targetStageId;
+        }
+
+        const sourceStageIndex = interaction.stages.findIndex((stage) => stage.id === event.stageId);
+        if (sourceStageIndex >= 0) {
+            const nextSurvivingStage = interaction.stages[sourceStageIndex + 1];
+            if (nextSurvivingStage) {
+                return nextSurvivingStage.id;
+            }
+        }
     }
 
     return interaction.stages.some((stage) => stage.id === event.stageId)

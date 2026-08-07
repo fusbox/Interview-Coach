@@ -471,39 +471,15 @@ function hydrateFeedbackComposition(value: unknown, task: FeedbackComposerTask) 
 
     const usabilityStatus = task.input.answerUsability.status;
     const directive = task.input.coachingDirective;
-    const boundedCandidateFeedback = isRecord(envelope.candidateFeedback)
+    const candidateFeedback = isRecord(envelope.candidateFeedback)
         ? {
             ...envelope.candidateFeedback,
-            acknowledgement: clampGeneratedText(envelope.candidateFeedback.acknowledgement, 220),
-            primaryStrength: clampNullableGeneratedText(envelope.candidateFeedback.primaryStrength, 280),
-            biggestUpgrade: clampNullableGeneratedText(envelope.candidateFeedback.biggestUpgrade, 280),
-            redoPrompt: clampNullableGeneratedText(envelope.candidateFeedback.redoPrompt, 320),
-            patternSuggestion: isRecord(envelope.candidateFeedback.patternSuggestion)
-                ? {
-                    ...envelope.candidateFeedback.patternSuggestion,
-                    patternName: clampGeneratedText(envelope.candidateFeedback.patternSuggestion.patternName, 100),
-                    steps: Array.isArray(envelope.candidateFeedback.patternSuggestion.steps)
-                        ? envelope.candidateFeedback.patternSuggestion.steps.map((step) => clampGeneratedText(step, 120))
-                        : envelope.candidateFeedback.patternSuggestion.steps,
-                }
-                : envelope.candidateFeedback.patternSuggestion,
-            deliveryNote: isRecord(envelope.candidateFeedback.deliveryNote)
-                ? {
-                    ...envelope.candidateFeedback.deliveryNote,
-                    message: clampGeneratedText(envelope.candidateFeedback.deliveryNote.message, 220),
-                }
-                : envelope.candidateFeedback.deliveryNote,
-        }
-        : envelope.candidateFeedback;
-    const candidateFeedback = isRecord(boundedCandidateFeedback)
-        ? {
-            ...boundedCandidateFeedback,
             ...(usabilityStatus !== "usable" ? { primaryStrength: null } : {}),
             ...(!directive.content.requireBiggestUpgrade ? { biggestUpgrade: null } : {}),
             ...(!directive.content.requireRedoPrompt ? { redoPrompt: null } : {}),
             ...(!directive.content.allowPatternSuggestion ? { patternSuggestion: null } : {}),
         }
-        : boundedCandidateFeedback;
+        : envelope.candidateFeedback;
     const feedbackPlan = isRecord(envelope.feedbackPlan)
         ? {
             ...envelope.feedbackPlan,
@@ -527,8 +503,14 @@ function hydrateFeedbackComposition(value: unknown, task: FeedbackComposerTask) 
     };
 }
 
-function clampNullableGeneratedText(value: unknown, maxLength: number) {
-    return value === null ? null : clampGeneratedText(value, maxLength);
+function hydrateCodeOwnedEnvelope(value: unknown, status: string, inputFingerprint: string) {
+    if (!isRecord(value)) return value;
+    return {
+        ...value,
+        status,
+        schemaVersion: 1,
+        inputFingerprint,
+    };
 }
 
 function clampGeneratedText(value: unknown, maxLength: number) {
@@ -548,16 +530,6 @@ function clampGeneratedText(value: unknown, maxLength: number) {
 
     const wordEnd = clipped.lastIndexOf(" ");
     return `${clipped.slice(0, wordEnd > 0 ? wordEnd : clipped.length)}...`;
-}
-
-function hydrateCodeOwnedEnvelope(value: unknown, status: string, inputFingerprint: string) {
-    if (!isRecord(value)) return value;
-    return {
-        ...value,
-        status,
-        schemaVersion: 1,
-        inputFingerprint,
-    };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

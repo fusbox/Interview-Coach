@@ -44,10 +44,6 @@
 
     /* Candidate dashboard canvas and spotlight primitives. Components consume
        the semantic material roles in roles.css rather than these stops. */
-    --dashboard-canvas-blue-1: 217 236 255; /* @kind color */
-    --dashboard-canvas-blue-2: 229 244 255; /* @kind color */
-    --dashboard-canvas-blue-3: 210 241 255; /* @kind color */
-    --dashboard-canvas-blue-4: 227 247 255; /* @kind color */
     --dashboard-canvas-blue-5: 236 246 255; /* @kind color */
     --dashboard-canvas-blue-6: 242 250 255; /* @kind color */
     --dashboard-canvas-blue-7: 236 250 255; /* @kind color */
@@ -150,10 +146,6 @@
     --primary-solid-deep: 16 28 58; /* @kind color, ~16.8:1 vs white */
     --accent-solid: 20 110 88; /* @kind color, ~6.2:1 vs white */
     --solid-foreground: 255 255 255; /* @kind color */
-    --dashboard-canvas-blue-1: 70 97 128; /* @kind color */
-    --dashboard-canvas-blue-2: 56 78 99; /* @kind color */
-    --dashboard-canvas-blue-3: 50 96 118; /* @kind color */
-    --dashboard-canvas-blue-4: 49 77 95; /* @kind color */
     --dashboard-canvas-blue-5: 48 60 78; /* @kind color */
     --dashboard-canvas-blue-6: 45 59 72; /* @kind color */
     --dashboard-canvas-blue-7: 44 62 75; /* @kind color */

@@ -22,6 +22,7 @@ import {
     type CandidateFeedbackActionEvent,
 } from "./candidate-feedback-interaction";
 import {
+    candidateQuestionPlanCategoryDetails,
     createCandidateQuestionPlan,
 } from "./candidate-question-plan";
 import {
@@ -53,6 +54,15 @@ import { toSessionQuestionAudioTarget } from "@/features/interview-session-v2/se
 import { isVoiceTranscriptDraftResolvedByAnswer } from "@/features/interview-session-v2/voice-answer-transcription";
 import { CandidateBrandHeader } from "@/features/candidate-v2/CandidateBrandHeader";
 import { CandidateThemeSwitcher } from "@/features/candidate-v2/CandidateThemeSwitcher";
+import type { CandidateEngagementSessionSummary } from "@/features/candidate-engagement-v2/candidate-engagement-contract";
+import {
+    CandidateEngagementRuntime,
+    type CandidateEngagementActions,
+} from "@/features/candidate-engagement-v2/CandidateEngagementRuntime";
+import {
+    resolveCandidateFocusedUnansweredQuestionIndex,
+    resolveCandidateNextUnansweredQuestionIndex,
+} from "./candidate-session-question-resolution";
 
 type CandidatePlannedSessionExperienceProps = {
     sessionId: string;
@@ -67,6 +77,11 @@ type CandidatePlannedSessionExperienceProps = {
     invitedPauseEnabled?: boolean;
     questionAudioEnabled?: boolean;
     voiceAnswerEnabled?: boolean;
+    engagementReportingEnabled?: boolean;
+    engagementInspectorEnabled?: boolean;
+    initialEngagementSummary?: CandidateEngagementSessionSummary | null;
+    visitPace?: "setup" | "one";
+    focusQuestionKey?: string;
 };
 
 export function CandidatePlannedSessionExperience({
@@ -82,13 +97,19 @@ export function CandidatePlannedSessionExperience({
     invitedPauseEnabled = false,
     questionAudioEnabled = false,
     voiceAnswerEnabled = false,
+    engagementReportingEnabled = false,
+    engagementInspectorEnabled = false,
+    initialEngagementSummary = null,
+    visitPace = "setup",
+    focusQuestionKey,
 }: CandidatePlannedSessionExperienceProps) {
+    const initialProgress = resolveRecoveredCandidateProgress(initialSession, focusQuestionKey);
     const [session, setSession] = useState<CandidateProvisionalSessionRecord | null>(initialSession);
     const [hasCheckedStorage, setHasCheckedStorage] = useState(Boolean(initialSession));
     const [progress, setProgress] = useState<CandidateProvisionalSessionProgress>({
-        status: initialSession?.progress?.status ?? "planned",
-        currentQuestionIndex: initialSession?.progress?.currentQuestionIndex ?? 0,
-        ...(initialSession?.progress?.answerMode ? { answerMode: initialSession.progress.answerMode } : {}),
+        status: initialProgress.status,
+        currentQuestionIndex: initialProgress.currentQuestionIndex,
+        ...(initialProgress.answerMode ? { answerMode: initialProgress.answerMode } : {}),
     });
     const [answerDrafts, setAnswerDrafts] = useState<CandidateAnswerDrafts>(initialSession?.answerDrafts ?? {});
     const [answerSubmissions, setAnswerSubmissions] = useState<CandidateAnswerSubmissions>(
@@ -106,6 +127,7 @@ export function CandidatePlannedSessionExperience({
     const feedbackRetrySourcesRef = useRef(feedbackRetrySources);
     const [sessionCompletionMessage, setSessionCompletionMessage] = useState<string | null>(null);
     const [isCompletingSession, setIsCompletingSession] = useState(false);
+    const [isPacedExitPending, setIsPacedExitPending] = useState(false);
     const [isPausingSession, setIsPausingSession] = useState(false);
     const [isSessionPaused, setIsSessionPaused] = useState(false);
     const [answerMode, setAnswerMode] = useState<"text" | "voice">(
@@ -115,6 +137,7 @@ export function CandidatePlannedSessionExperience({
     const [isVoiceAnswerModeLocked, setIsVoiceAnswerModeLocked] = useState(false);
     const [isVoiceInteractionGated, setIsVoiceInteractionGated] = useState(false);
     const [isVoiceSubmitPreparing, setIsVoiceSubmitPreparing] = useState(false);
+    const [isVoiceRecording, setIsVoiceRecording] = useState(false);
     const [entryTransitionPhase, setEntryTransitionPhase] = useState<"entering" | "releasing" | null>(
         entryTransitionRequested ? "entering" : null,
     );
@@ -124,6 +147,15 @@ export function CandidatePlannedSessionExperience({
     const entryReleaseTimerRef = useRef<number | null>(null);
     const entryFrameOneRef = useRef<number | null>(null);
     const entryFrameTwoRef = useRef<number | null>(null);
+    const pacedExitClaimedRef = useRef(false);
+    const pacedExitFrameOneRef = useRef<number | null>(null);
+    const pacedExitFrameTwoRef = useRef<number | null>(null);
+    const engagementActionsRef = useRef<CandidateEngagementActions | null>(null);
+    const settledQuestionKeysThisVisitRef = useRef(new Set<string>());
+    const engagementTracker = useMemo<CandidateEngagementActions>(() => ({
+        trackEvent: (tier, activity) => engagementActionsRef.current?.trackEvent(tier, activity),
+        flush: (reason) => engagementActionsRef.current?.flush(reason) ?? Promise.resolve(true),
+    }), []);
     const handleAnswerSubmissionSaved = useCallback((slotId: string) => {
         const nextSources = { ...feedbackRetrySourcesRef.current };
         delete nextSources[slotId];
@@ -196,12 +228,13 @@ export function CandidatePlannedSessionExperience({
         if (nextMode === answerMode) return;
         if (isVoiceAnswerModeLocked) return;
 
+        engagementTracker.trackEvent("tier2", "answer_mode");
         setAnswerMode(nextMode);
         updateProgress({
             ...progress,
             answerMode: nextMode,
         });
-    }, [answerMode, isVoiceAnswerModeLocked, progress, updateProgress]);
+    }, [answerMode, engagementTracker, isVoiceAnswerModeLocked, progress, updateProgress]);
 
     useEffect(() => {
         if (loadedSessionIdRef.current === sessionId) {
@@ -213,12 +246,11 @@ export function CandidatePlannedSessionExperience({
         loadedSessionIdRef.current = sessionId;
 
         if (initialSession) {
+            const recoveredProgress = resolveRecoveredCandidateProgress(initialSession, focusQuestionKey);
             setSession(initialSession);
             setHasCheckedStorage(true);
-            setProgress(initialSession.progress ?? {
-                status: "planned",
-                currentQuestionIndex: 0,
-            });
+            setProgress(recoveredProgress);
+            settledQuestionKeysThisVisitRef.current = new Set();
             setAnswerMode(resolveAvailableAnswerMode(initialSession.progress?.answerMode, voiceAnswerEnabled));
             setAnswerDrafts(initialSession.answerDrafts ?? {});
             setAnswerSubmissions(initialSession.answerSubmissions ?? {});
@@ -232,12 +264,11 @@ export function CandidatePlannedSessionExperience({
         }
 
         const storedSession = readCandidateProvisionalSession(window.sessionStorage, sessionId);
+        const recoveredProgress = resolveRecoveredCandidateProgress(storedSession, focusQuestionKey);
         setSession(storedSession);
         setHasCheckedStorage(true);
-        setProgress(storedSession?.progress ?? {
-            status: "planned",
-            currentQuestionIndex: 0,
-        });
+        setProgress(recoveredProgress);
+        settledQuestionKeysThisVisitRef.current = new Set();
         setAnswerMode(resolveAvailableAnswerMode(storedSession?.progress?.answerMode, voiceAnswerEnabled));
         setAnswerDrafts(storedSession?.answerDrafts ?? {});
         setAnswerSubmissions(storedSession?.answerSubmissions ?? {});
@@ -247,7 +278,7 @@ export function CandidatePlannedSessionExperience({
         feedbackRetrySourcesRef.current = recoveredRetrySources;
         setFeedbackRetrySources(recoveredRetrySources);
         window.scrollTo({ top: 0 });
-    }, [initialSession, sessionId, voiceAnswerEnabled]);
+    }, [focusQuestionKey, initialSession, sessionId, voiceAnswerEnabled]);
 
     const stageLabel = useMemo(
         () => session ? getStageLabel(session.setupSnapshot.interviewStage) : "",
@@ -423,6 +454,12 @@ export function CandidatePlannedSessionExperience({
         if (entryFrameTwoRef.current !== null) {
             window.cancelAnimationFrame(entryFrameTwoRef.current);
         }
+        if (pacedExitFrameOneRef.current !== null) {
+            window.cancelAnimationFrame(pacedExitFrameOneRef.current);
+        }
+        if (pacedExitFrameTwoRef.current !== null) {
+            window.cancelAnimationFrame(pacedExitFrameTwoRef.current);
+        }
     }, []);
 
     const entryTransition = entryTransitionPhase ? (
@@ -433,6 +470,9 @@ export function CandidatePlannedSessionExperience({
             isReleasing={false}
             mode={completionBehavior?.kind === "invited_debrief" ? "summary" : "coach_plan"}
         />
+    ) : null;
+    const pacedExitTransition = isPacedExitPending ? (
+        <CandidatePracticeEntryTransitionOverlay isReleasing={false} mode="dashboard" />
     ) : null;
 
     if (!hasCheckedStorage) {
@@ -512,7 +552,11 @@ export function CandidatePlannedSessionExperience({
                     : activeTextDraft
                         ? "draft_saved"
                         : "idle");
-        const isLastQuestion = activeQuestionIndex >= questionWordingPreview.questions.length - 1;
+        const isLastQuestion = resolveCandidateNextUnansweredQuestionIndex({
+            questions: questionWordingPreview.questions,
+            answerSubmissions,
+            afterQuestionIndex: activeQuestionIndex,
+        }) === null;
         const feedbackInteraction = activeAnalysisSnapshot
             ? createCandidateFeedbackInteraction({
                 analysisSnapshot: activeAnalysisSnapshot,
@@ -523,16 +567,26 @@ export function CandidatePlannedSessionExperience({
             <CandidateStagedFeedback
                 key={`${activeQuestion.slotId}:${activeAnalysisSnapshot.answer.answerAttemptId ?? activeAnalysisSnapshot.analyzedAt}`}
                 interaction={feedbackInteraction!}
+                question={{
+                    number: activeQuestionIndex + 1,
+                    count: runtimeFacts.questionCount,
+                    categoryLabel: candidateQuestionPlanCategoryDetails[activeQuestion.category].label,
+                    text: activeQuestion.questionText,
+                }}
+                answerText={activeSubmittedAnswerText}
                 savedActionEvent={feedbackActionEvents[activeQuestion.slotId]}
                 isCompletingSession={isCompletingSession}
                 completionMessage={sessionCompletionMessage}
                 onPersistAction={persistFeedbackAction}
-                onAdvanceQuestion={() => updateProgress({
-                    status: "live_question",
-                    currentQuestionIndex: activeQuestionIndex + 1,
-                })}
+                onAdvanceQuestion={() => {
+                    engagementTracker.trackEvent("tier3", "question_advance");
+                    void engagementTracker.flush("session_transition");
+                    advanceAfterSettledQuestion(activeQuestionIndex);
+                }}
                 onFinishSession={finishSession}
                 onRetryAnswer={(sourceAnswerAttemptId) => {
+                    engagementTracker.trackEvent("tier3", "feedback_action");
+                    void engagementTracker.flush("session_transition");
                     setSessionCompletionMessage(null);
                     const nextRetrySources = {
                         ...feedbackRetrySourcesRef.current,
@@ -593,6 +647,7 @@ export function CandidatePlannedSessionExperience({
             )) {
                 return;
             }
+            void engagementTracker.flush("page_exit");
             window.location.assign(exitHref ?? dashboardHref);
         };
 
@@ -627,23 +682,32 @@ export function CandidatePlannedSessionExperience({
                             questionSlotId={activeQuestion.slotId}
                             questionIndex={activeQuestion.index}
                             initialTranscriptDraft={initialVoiceTranscriptDraft}
-                            onQuickSubmitTranscript={(draft) => submitVoiceTranscript({
-                                draft,
-                                transcriptText: draft.transcriptText,
-                                retrySourceAnswerAttemptId: feedbackRetrySourcesRef.current[activeQuestion.slotId]
-                                    ?? activeRetrySource,
-                            })}
-                            onReviewedSubmitTranscript={({ draft, transcriptText }) => submitVoiceTranscript({
-                                draft,
-                                transcriptText,
-                                retrySourceAnswerAttemptId: feedbackRetrySourcesRef.current[activeQuestion.slotId]
-                                    ?? activeRetrySource,
-                            })}
+                            onQuickSubmitTranscript={(draft) => {
+                                engagementTracker.trackEvent("tier3", "answer_submit");
+                                void engagementTracker.flush("session_transition");
+                                return submitVoiceTranscript({
+                                    draft,
+                                    transcriptText: draft.transcriptText,
+                                    retrySourceAnswerAttemptId: feedbackRetrySourcesRef.current[activeQuestion.slotId]
+                                        ?? activeRetrySource,
+                                });
+                            }}
+                            onReviewedSubmitTranscript={({ draft, transcriptText }) => {
+                                engagementTracker.trackEvent("tier3", "answer_submit");
+                                void engagementTracker.flush("session_transition");
+                                return submitVoiceTranscript({
+                                    draft,
+                                    transcriptText,
+                                    retrySourceAnswerAttemptId: feedbackRetrySourcesRef.current[activeQuestion.slotId]
+                                        ?? activeRetrySource,
+                                });
+                            }}
                             onSwitchToText={() => handleAnswerModeChange("text")}
                             onUnsafeLocalWorkChange={setHasUnsafeVoiceWork}
                             onAnswerModeLockChange={setIsVoiceAnswerModeLocked}
                             onInteractionGateChange={setIsVoiceInteractionGated}
                             onSubmitProgressChange={setIsVoiceSubmitPreparing}
+                            onRecordingChange={setIsVoiceRecording}
                         />
                     ) : undefined}
                     onDraftChange={(text) => updateAnswerDraft({
@@ -668,29 +732,45 @@ export function CandidatePlannedSessionExperience({
                             void finishSession();
                             return;
                         }
-                        updateProgress({
-                            status: "live_question",
-                            currentQuestionIndex: activeQuestionIndex + 1,
-                        });
+                        engagementTracker.trackEvent("tier3", "question_advance");
+                        void engagementTracker.flush("session_transition");
+                        advanceAfterSettledQuestion(activeQuestionIndex);
                     }}
                     continueWithoutCoachingLabel={isLastQuestion
                         ? "Finish without coaching"
                         : "Continue without coaching"}
                     isContinuingWithoutCoaching={isLastQuestion && isCompletingSession}
                     continueWithoutCoachingError={isLastQuestion ? sessionCompletionMessage : null}
-                    onSubmit={() => submitAnswerDraft({
-                        slotId: activeQuestion.slotId,
-                        questionIndex: activeQuestion.index,
-                        text: activeTextDraft,
-                        retrySourceAnswerAttemptId: feedbackRetrySourcesRef.current[activeQuestion.slotId]
-                            ?? activeRetrySource,
-                    })}
+                    onSubmit={() => {
+                        engagementTracker.trackEvent("tier3", "answer_submit");
+                        void engagementTracker.flush("session_transition");
+                        void submitAnswerDraft({
+                            slotId: activeQuestion.slotId,
+                            questionIndex: activeQuestion.index,
+                            text: activeTextDraft,
+                            retrySourceAnswerAttemptId: feedbackRetrySourcesRef.current[activeQuestion.slotId]
+                                ?? activeRetrySource,
+                        });
+                    }}
+                />
+                <CandidateEngagementRuntime
+                    ref={engagementActionsRef}
+                    enabled={engagementReportingEnabled && Boolean(initialSession)}
+                    inspectorEnabled={engagementInspectorEnabled}
+                    sessionId={sessionId}
+                    endpoint={`${mutationBasePath}/engagement`}
+                    initialSummary={initialEngagementSummary ?? undefined}
+                    isContinuousActive={isVoiceRecording}
                 />
                 {entryTransition}
                 {completionTransition}
+                {pacedExitTransition}
             </>
         );
     }
+
+    const landingQuestion = questionWordingPreview?.questions[progress.currentQuestionIndex]
+        ?? questionWordingPreview?.questions[0];
 
     return (
         <>
@@ -698,7 +778,10 @@ export function CandidatePlannedSessionExperience({
                 variant="initial"
                 targetRole={session.setupSnapshot.targetRole}
                 stageLabel={stageLabel}
-                questionCount={session.setupSnapshot.questionCount}
+                questionCount={readCandidateSessionPaceSize(session)}
+                planQuestionCount={questionPlan?.questionCount
+                    ?? questionWordingPreview?.questions.length
+                    ?? session.setupSnapshot.questionCount}
                 resumeIncluded={Boolean(session.setupSnapshot.resumeText)}
                 resumeLabel={session.setupSnapshot.resumeArtifact?.candidateLabel ?? null}
                 sessionId={sessionId}
@@ -708,16 +791,25 @@ export function CandidatePlannedSessionExperience({
                     category: question.category,
                     questionText: question.questionText,
                 }))}
-                firstQuestion={questionWordingPreview?.questions[0] ? {
-                    id: questionWordingPreview.questions[0].slotId,
-                    number: 1,
-                    category: questionWordingPreview.questions[0].category,
-                    questionText: questionWordingPreview.questions[0].questionText,
+                firstQuestion={landingQuestion ? {
+                    id: landingQuestion.slotId,
+                    number: landingQuestion.index + 1,
+                    category: landingQuestion.category,
+                    questionText: landingQuestion.questionText,
                 } : undefined}
                 questionAudio={questionAudio}
                 manageTransitionExternally
                 onStart={questionWordingPreview ? beginPracticeEntryTransition : undefined}
                 returnHref={dashboardHref}
+            />
+            <CandidateEngagementRuntime
+                ref={engagementActionsRef}
+                enabled={engagementReportingEnabled && Boolean(initialSession)}
+                inspectorEnabled={engagementInspectorEnabled}
+                sessionId={sessionId}
+                endpoint={`${mutationBasePath}/engagement`}
+                initialSummary={initialEngagementSummary ?? undefined}
+                isContinuousActive={isVoiceRecording}
             />
             {entryTransition}
         </>
@@ -728,17 +820,20 @@ export function CandidatePlannedSessionExperience({
             return;
         }
 
+        engagementTracker.trackEvent("tier3", "practice_start");
+        void engagementTracker.flush("session_transition");
         setEntryTransitionPhase("entering");
         entryHoldTimerRef.current = window.setTimeout(() => {
             updateProgress({
                 status: "live_question",
-                currentQuestionIndex: 0,
+                currentQuestionIndex: progress.currentQuestionIndex,
             });
             releasePracticeEntryTransition();
         }, CANDIDATE_PRACTICE_ENTRY_HOLD_MS);
     }
 
     async function persistFeedbackAction(feedbackActionEvent: CandidateFeedbackActionEvent) {
+        engagementTracker.trackEvent("tier3", "feedback_action");
         if (!initialSession) {
             const savedSession = saveCandidateProvisionalSessionFeedbackActionEvent(
                 window.sessionStorage,
@@ -775,6 +870,49 @@ export function CandidatePlannedSessionExperience({
         }
     }
 
+    function advanceAfterSettledQuestion(currentQuestionIndex: number) {
+        if (!questionWordingPreview) return;
+        const settledQuestion = questionWordingPreview.questions.find(
+            (question) => question.index === currentQuestionIndex,
+        );
+        if (settledQuestion) {
+            settledQuestionKeysThisVisitRef.current.add(settledQuestion.slotId);
+        }
+        const nextQuestionIndex = resolveCandidateNextUnansweredQuestionIndex({
+            questions: questionWordingPreview.questions,
+            answerSubmissions,
+            afterQuestionIndex: currentQuestionIndex,
+        });
+        if (nextQuestionIndex === null) {
+            void finishSession();
+            return;
+        }
+
+        const setupPace = readCandidateSessionPaceSize(session);
+        const paceLimit = visitPace === "one" ? 1 : setupPace;
+        if (settledQuestionKeysThisVisitRef.current.size >= paceLimit) {
+            beginPacedExit();
+            return;
+        }
+
+        updateProgress({
+            status: "live_question",
+            currentQuestionIndex: nextQuestionIndex,
+        });
+    }
+
+    function beginPacedExit() {
+        if (pacedExitClaimedRef.current) return;
+        pacedExitClaimedRef.current = true;
+        setIsPacedExitPending(true);
+        void engagementTracker.flush("session_transition");
+        pacedExitFrameOneRef.current = window.requestAnimationFrame(() => {
+            pacedExitFrameTwoRef.current = window.requestAnimationFrame(() => {
+                window.location.assign(dashboardHref);
+            });
+        });
+    }
+
     async function finishSession() {
         if (isCompletingSession) {
             return;
@@ -782,6 +920,8 @@ export function CandidatePlannedSessionExperience({
 
         setIsCompletingSession(true);
         setSessionCompletionMessage(null);
+        engagementTracker.trackEvent("tier3", "session_finish");
+        await engagementTracker.flush("session_transition");
 
         let navigationStarted = false;
         try {
@@ -826,6 +966,51 @@ function resolveAvailableAnswerMode(
 ): "text" | "voice" {
     if (!voiceAnswerEnabled) return "text";
     return persistedMode === "text" ? "text" : "voice";
+}
+
+function resolveRecoveredCandidateProgress(
+    session: CandidateProvisionalSessionRecord | null | undefined,
+    focusQuestionKey?: string,
+): CandidateProvisionalSessionProgress {
+    const persisted = session?.progress ?? {
+        status: "planned" as const,
+        currentQuestionIndex: 0,
+    };
+    if (!session || persisted.status === "completed") return persisted;
+
+    const questions = session.questionWordingSnapshot?.questions
+        ?? session.questionPlanSnapshot?.slots.map((slot) => ({ slotId: slot.id, index: slot.index }))
+        ?? [];
+    const currentQuestion = questions[persisted.currentQuestionIndex];
+    const currentQuestionKey = currentQuestion?.slotId;
+    const currentFeedbackEvent = currentQuestionKey
+        ? session.feedbackActionEvents?.[currentQuestionKey]
+        : null;
+    const currentQuestionHasAnswer = Boolean(
+        currentQuestionKey && session.answerSubmissions?.[currentQuestionKey],
+    );
+    const currentQuestionIsSettled = currentFeedbackEvent?.transition === "advance_to_next_question"
+        || currentFeedbackEvent?.transition === "finish_session";
+    if (currentQuestionHasAnswer && !currentQuestionIsSettled) return persisted;
+
+    const resolvedQuestionIndex = resolveCandidateFocusedUnansweredQuestionIndex({
+        questions,
+        answerSubmissions: session.answerSubmissions ?? {},
+        focusQuestionKey,
+        fallbackQuestionIndex: persisted.currentQuestionIndex,
+    });
+    return {
+        ...persisted,
+        currentQuestionIndex: resolvedQuestionIndex ?? persisted.currentQuestionIndex,
+    };
+}
+
+function readCandidateSessionPaceSize(session: CandidateProvisionalSessionRecord | null) {
+    const paceSize = session?.setupSnapshot.paceSize;
+    if (typeof paceSize === "number" && Number.isInteger(paceSize) && paceSize > 0) {
+        return paceSize;
+    }
+    return Math.max(session?.setupSnapshot.questionCount ?? 1, 1);
 }
 
 function toRecoveredAnswerMutationPhase(

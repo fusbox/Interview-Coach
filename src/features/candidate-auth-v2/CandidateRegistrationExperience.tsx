@@ -5,6 +5,14 @@ import { FormEvent, type InputHTMLAttributes, useMemo, useState } from "react";
 import { AlertCircle, ArrowRight, CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
 
 import { CANDIDATE_POLICY_LINKS } from "./candidate-policy-manifest";
+import {
+    CANDIDATE_EMAIL_INPUT_PATTERN,
+    CANDIDATE_EMAIL_MAX_LENGTH,
+    CANDIDATE_PHONE_INPUT_PATTERN,
+    formatCandidatePhoneInput,
+    sanitizeCandidateEmailInput,
+    sanitizeCandidatePostalCodeInput,
+} from "./candidate-registration-input";
 
 type RegistrationResponse = {
     message?: string;
@@ -23,6 +31,9 @@ export function CandidateRegistrationExperience() {
     const [error, setError] = useState<string | null>(null);
     const [developmentUrl, setDevelopmentUrl] = useState<string | null>(null);
     const [showPassword, setShowPassword] = useState(false);
+    const [email, setEmail] = useState("");
+    const [phone, setPhone] = useState("");
+    const [postalCode, setPostalCode] = useState("");
     const [contactPreferences, setContactPreferences] = useState(emptyContactPreferences);
     const hasContactPreference = useMemo(
         () => Object.values(contactPreferences).some(Boolean),
@@ -56,10 +67,10 @@ export function CandidateRegistrationExperience() {
                 body: JSON.stringify({
                     firstName: form.get("firstName"),
                     lastName: form.get("lastName"),
-                    email: form.get("email"),
+                    email,
                     password,
-                    phone: form.get("phone"),
-                    postalCode: form.get("postalCode"),
+                    phone,
+                    postalCode,
                     contactPreferences,
                     contactAuthorization,
                     platformPolicyAccepted: form.get("platformPolicyAccepted") === "on",
@@ -123,14 +134,20 @@ export function CandidateRegistrationExperience() {
                 <fieldset className="candidate-account-form__section">
                     <legend className="type-eyebrow">About you</legend>
                     <div className="candidate-account-form__grid">
-                        <Field label="First name" name="firstName" autoComplete="given-name" />
-                        <Field label="Last name" name="lastName" autoComplete="family-name" />
+                        <Field label="First name" name="firstName" autoComplete="given-name" maxLength={80} />
+                        <Field label="Last name" name="lastName" autoComplete="family-name" maxLength={80} />
                         <Field
                             label="Email"
                             name="email"
                             type="email"
                             autoComplete="email"
                             inputMode="email"
+                            autoCapitalize="none"
+                            spellCheck={false}
+                            maxLength={CANDIDATE_EMAIL_MAX_LENGTH}
+                            pattern={CANDIDATE_EMAIL_INPUT_PATTERN}
+                            value={email}
+                            onChange={(event) => setEmail(sanitizeCandidateEmailInput(event.currentTarget.value))}
                             wide
                         />
                         <Field
@@ -140,13 +157,22 @@ export function CandidateRegistrationExperience() {
                             autoComplete="tel"
                             inputMode="tel"
                             placeholder="(555) 555-5555"
+                            labelNote="10 digits or +country code"
+                            maxLength={24}
+                            pattern={CANDIDATE_PHONE_INPUT_PATTERN}
+                            value={phone}
+                            onChange={(event) => setPhone(formatCandidatePhoneInput(event.currentTarget.value))}
                         />
                         <Field
                             label="ZIP code"
                             name="postalCode"
                             autoComplete="postal-code"
                             inputMode="numeric"
-                            pattern="[0-9]{5}(-[0-9]{4})?"
+                            placeholder="12345"
+                            maxLength={5}
+                            pattern="[0-9]{5}"
+                            value={postalCode}
+                            onChange={(event) => setPostalCode(sanitizeCandidatePostalCodeInput(event.currentTarget.value))}
                         />
                     </div>
                 </fieldset>
@@ -249,28 +275,40 @@ function Field({
     label,
     name,
     type = "text",
-    helper,
+    labelNote,
     wide = false,
     ...inputProps
 }: {
     label: string;
     name: string;
     type?: string;
-    helper?: string;
+    labelNote?: string;
     wide?: boolean;
 } & Omit<InputHTMLAttributes<HTMLInputElement>, "name" | "type">) {
+    const fieldId = `candidate-register-${name}`;
+    const noteId = `${fieldId}-note`;
+
     return (
         <div className={`candidate-account-field${wide ? " candidate-account-field--wide" : ""}`}>
-            <label htmlFor={`candidate-register-${name}`}>{label}</label>
+            {labelNote ? (
+                <div className="candidate-account-field__label-row candidate-account-field__label-row--note">
+                    <label htmlFor={fieldId}>{label}</label>
+                    <small id={noteId} className="candidate-account-field__label-note" title={labelNote}>
+                        {labelNote}
+                    </small>
+                </div>
+            ) : (
+                <label htmlFor={fieldId}>{label}</label>
+            )}
             <input
-                id={`candidate-register-${name}`}
+                id={fieldId}
                 name={name}
                 type={type}
                 required
                 maxLength={inputProps.maxLength ?? 320}
+                aria-describedby={labelNote ? noteId : undefined}
                 {...inputProps}
             />
-            {helper ? <small>{helper}</small> : null}
         </div>
     );
 }

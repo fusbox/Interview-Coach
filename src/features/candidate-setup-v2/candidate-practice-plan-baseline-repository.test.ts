@@ -126,7 +126,6 @@ function createThreeQuestionFirstRoundWithSevenQuestionBaseline(): {
     const roundPlan = deriveCandidateInitialRoundPlan({
         baseline: snapshot,
         generationPlan,
-        selectedQuestionCount: 3,
     });
     const generatedWording = createFixtureCandidateQuestionWordingResult({
         setupSnapshot: { ...setupSnapshot, questionCount: generationPlan.questionCount },

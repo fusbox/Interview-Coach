@@ -65,6 +65,34 @@ describe("completed-round answer-analysis repair", () => {
         });
     });
 
+    it("recognizes an allowlisted historical accepted run without rerunning the retired prompt", async () => {
+        const evidence = createEvidence(1);
+        const historical = await createAcceptedRun(evidence.answerAttempts[0]);
+        const storedResult = historical.result as {
+            profile: { promptBundleVersion: string };
+        };
+        storedResult.profile.promptBundleVersion = "candidate_evidence_first_prompts_v14";
+        evidence.evaluationRuns.push(historical);
+        const repairSlot = vi.fn(async (slotId: string) => {
+            evidence.session.answerAnalysisSnapshots[slotId] = createProjection(evidence.answerAttempts[0]);
+        });
+
+        const result = await repairCandidateCompletedRoundAnalysis({
+            loadEvidence: async () => evidence,
+            repairSlot,
+            runtimeAvailable: false,
+            now: NOW,
+        });
+
+        expect(repairSlot).toHaveBeenCalledTimes(1);
+        expect(result).toMatchObject({
+            status: "repaired",
+            acceptedCount: 1,
+            repairedCount: 0,
+            allAnsweredOccurrencesAccepted: true,
+        });
+    });
+
     it("does not auto-retry a nonretryable terminal evaluator result", async () => {
         const evidence = createEvidence(1);
         evidence.evaluationRuns.push(createRejectedRun(evidence.answerAttempts[0]));

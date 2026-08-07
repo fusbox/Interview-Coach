@@ -75,6 +75,30 @@ describe("candidate Coach Update detail contract", () => {
         });
     });
 
+    it("keeps the practiced occurrence separate from its canonical Plan identity", () => {
+        const followUp = createFollowUpSourceSession(4);
+        const root = createRootSourceSession();
+        const detail = createCandidateCoachUpdateDetail(createArtifact(), followUp, [followUp, root]);
+
+        expect(detail?.items[0]).toMatchObject({
+            questionKey: "slot-1",
+            sourceOccurrence: {
+                candidatePracticeSessionId: "session-1",
+                questionKey: "slot-1",
+            },
+            canonicalQuestion: {
+                candidatePracticeSessionId: "source-session-1",
+                questionKey: "slot-4",
+            },
+            focusedPracticeAction: {
+                source: {
+                    candidatePracticeSessionId: "session-1",
+                    questionKey: "slot-1",
+                },
+            },
+        });
+    });
+
     it("returns null for an absent or noncompleted artifact", () => {
         expect(createCandidateCoachUpdateDetail(null)).toBeNull();
         expect(createCandidateCoachUpdateDetail({
@@ -219,5 +243,33 @@ function createFollowUpSourceSession(sourceQuestionNumber: number): CandidatePra
         answerAnalysisSnapshots: {},
         feedbackActionEvents: {},
         completionSnapshot: null,
+    };
+}
+
+function createRootSourceSession(): CandidatePracticeSessionRecord {
+    const session = createFollowUpSourceSession(4);
+    const setupSnapshot = {
+        targetRole: session.setupSnapshot.targetRole,
+        jobDescription: session.setupSnapshot.jobDescription,
+        resumeText: session.setupSnapshot.resumeText,
+        interviewStage: session.setupSnapshot.interviewStage,
+        questionCount: session.setupSnapshot.questionCount,
+        resumeCaptureMode: session.setupSnapshot.resumeCaptureMode,
+        createdAt: session.setupSnapshot.createdAt,
+    };
+
+    return {
+        ...session,
+        candidatePracticeSessionId: "source-session-1",
+        setupSnapshot,
+        questionWordingSnapshot: {
+            status: "questions_worded",
+            questions: [{
+                slotId: "slot-4",
+                index: 3,
+                category: "behavioral",
+                questionText: "Tell me about a time you handled an inventory issue.",
+            }],
+        },
     };
 }

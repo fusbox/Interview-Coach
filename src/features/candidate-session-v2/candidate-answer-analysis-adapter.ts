@@ -14,7 +14,10 @@ import {
     type FeedbackCompositionOutput,
     type PatternGap,
 } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
-import type { AcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
+import type {
+    AcceptedEvidenceFirstEvaluatorRun,
+    CompatiblePersistedAcceptedEvidenceFirstEvaluatorRun,
+} from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 import {
     deriveQuestionPreparedness,
     questionPreparednessResultSchema,
@@ -31,6 +34,7 @@ export type CandidateAnswerAnalysisProviderName = "candidate_v2_answer_evaluator
 
 export type CandidateAnswerAnalysisSetupSnapshot = CandidateSetupPayload & {
     createdAt: string;
+    canonicalPlanQuestionCount?: number;
 };
 
 export type CandidateAnswerAnalysisQuestion = {
@@ -158,7 +162,7 @@ export function createCandidateAnswerAnalysisProviderRequest({
             jobDescription: setupSnapshot.jobDescription,
             resumeText: setupSnapshot.resumeText,
             interviewStage: setupSnapshot.interviewStage,
-            questionCount: setupSnapshot.questionCount,
+            questionCount: setupSnapshot.canonicalPlanQuestionCount ?? setupSnapshot.questionCount,
         },
     };
 }
@@ -250,7 +254,7 @@ export function parseStoredCandidateAnswerAnalysisProviderResult(
 }
 
 export function createCandidateAnswerAnalysisProjectionFromEvaluatorRun(input: {
-    run: AcceptedEvidenceFirstEvaluatorRun;
+    run: AcceptedEvidenceFirstEvaluatorRun | CompatiblePersistedAcceptedEvidenceFirstEvaluatorRun;
     answer: CandidateAnswerAnalysisProviderResult["answer"];
 }): CandidateAnswerAnalysisProviderResult {
     return createCandidateAnswerAnalysisProjectionFromAcceptedFeedback({

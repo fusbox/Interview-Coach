@@ -1,7 +1,9 @@
-import { ArrowRight, Briefcase, ChevronDown, ClipboardList, Plus } from "lucide-react";
+import { ArrowRight, Briefcase, ChevronDown, Plus } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
+import { Button } from "@/components/ui/button";
+import { Surface } from "@/components/ui/surface";
 import { resolveCandidateOwnedCookieIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import {
@@ -12,7 +14,6 @@ import { createCandidateCoachUpdateArtifactRepository } from "@/features/candida
 import { CandidateDashboardCoachDeskExperience } from "@/features/candidate-dashboard-v2/CandidateDashboardCoachDeskExperience";
 import {
     CandidateNextRoundBuilderExperience,
-    CandidateNextRoundBuilderTrigger,
 } from "@/features/candidate-dashboard-v2/CandidateNextRoundBuilderExperience";
 import {
     createCandidateDashboardHref,
@@ -23,11 +24,12 @@ import {
     createCandidatePracticeSessionRepository,
 } from "@/features/candidate-session-v2/candidate-practice-session-repository";
 import { createCandidateAnswerHistoryRepository } from "@/features/candidate-session-v2/candidate-answer-history-repository";
-import { parseAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
+import { parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 import { createCandidatePracticePlanBaselineRepository } from "@/features/candidate-setup-v2/candidate-practice-plan-baseline-repository";
 import type { CandidateNextRoundBuilderModel } from "@/features/candidate-practice-v2/candidate-next-round-builder";
 import { createCandidateNextRoundRuntime } from "@/features/candidate-practice-v2/candidate-next-round-runtime";
 import { CandidateAccountMenu } from "@/features/candidate-v2/CandidateAccountMenu";
+import { CandidateDismissibleDetails } from "@/features/candidate-v2/CandidateDismissibleDetails";
 import { getCandidateInitials } from "@/features/candidate-v2/candidate-identity";
 import { CandidateThemeSwitcher } from "@/features/candidate-v2/CandidateThemeSwitcher";
 
@@ -94,7 +96,7 @@ export async function renderCandidateDashboardPage({
 
     let nextRoundBuilder: CandidateNextRoundBuilderModel | null = null;
     const roleProfileId = dashboard?.selectedTargetInterview?.roleProfileId ?? null;
-    if (dashboard && roleProfileId && dependencies.resolveNextRoundBuilder) {
+    if (dashboard && !dashboard.activeRound && roleProfileId && dependencies.resolveNextRoundBuilder) {
         try {
             nextRoundBuilder = await dependencies.resolveNextRoundBuilder({
                 candidateProfileId: dashboard.candidateProfileId,
@@ -126,7 +128,6 @@ function CandidateDashboardHome({
         <main className="candidate-dashboard-page">
             <CandidateDashboardShellHeader
                 dashboard={dashboard}
-                hasNextRoundBuilder={Boolean(nextRoundBuilder)}
                 showAccountLogout={showAccountLogout}
             />
             <section className="candidate-dashboard-shell">
@@ -148,11 +149,9 @@ function CandidateDashboardHome({
 
 function CandidateDashboardShellHeader({
     dashboard,
-    hasNextRoundBuilder,
     showAccountLogout,
 }: {
     dashboard: CandidateDashboardV2ReadModel | null;
-    hasNextRoundBuilder: boolean;
     showAccountLogout: boolean;
 }) {
     const displayName = dashboard?.candidate.displayName;
@@ -188,7 +187,7 @@ function CandidateDashboardShellHeader({
                     )}
 
                     {selectedTargetInterview ? (
-                        <details className="candidate-dashboard-context-menu">
+                        <CandidateDismissibleDetails className="candidate-dashboard-context-menu">
                             <summary>
                                 <Briefcase size={16} aria-hidden="true" />
                                 <span>
@@ -197,10 +196,9 @@ function CandidateDashboardShellHeader({
                                 <ChevronDown size={18} aria-hidden="true" />
                             </summary>
                             <div className="candidate-dashboard-context-menu__popover">
-                                <p className="type-eyebrow">Your prep contexts</p>
+                                <p className="type-eyebrow">Switch or add a role to practice</p>
                                 <div className="candidate-dashboard-context-menu__current" aria-current="page">
                                     <strong>{selectedTargetInterview.targetRole}</strong>
-                                    <span>{formatTargetInterviewProgress(selectedTargetInterview)}</span>
                                 </div>
                                 {alternateTargetInterviews.map((targetInterview) => (
                                     <a
@@ -208,7 +206,6 @@ function CandidateDashboardShellHeader({
                                         href={createCandidateDashboardTargetInterviewHref(targetInterview)}
                                     >
                                         <strong>{targetInterview.targetRole}</strong>
-                                        <span>{formatTargetInterviewProgress(targetInterview)}</span>
                                     </a>
                                 ))}
                                 <a className="candidate-dashboard-context-menu__new" href="/candidate/setup">
@@ -216,24 +213,20 @@ function CandidateDashboardShellHeader({
                                     <span>Prep for a new role</span>
                                 </a>
                             </div>
-                        </details>
+                        </CandidateDismissibleDetails>
                     ) : <span className="candidate-dashboard-topbar__spacer" />}
 
-                    {hasNextRoundBuilder ? (
-                        <CandidateNextRoundBuilderTrigger />
-                    ) : (
+                    {!selectedTargetInterview ? (
                         <a
                             className="candidate-dashboard-next-link"
-                            href={selectedTargetInterview ? "#practice-next" : "/candidate/setup"}
+                            href="/candidate/setup"
                         >
-                            {selectedTargetInterview
-                                ? <ClipboardList size={18} aria-hidden="true" />
-                                : <Plus size={18} aria-hidden="true" />}
+                            <Plus size={18} aria-hidden="true" />
                             <span className="candidate-dashboard-next-link__label">
-                                {selectedTargetInterview ? "Practice next" : "Set up practice"}
+                                Set up practice
                             </span>
                         </a>
-                    )}
+                    ) : null}
                 </div>
             </div>
         </header>
@@ -276,27 +269,29 @@ function createCandidateDashboardHrefFromRequest({
         : createCandidateDashboardHref();
 }
 
-function formatTargetInterviewProgress(targetInterview: CandidateDashboardV2ReadModel["targetInterviews"][number]) {
-    const roundLabel = targetInterview.activeRoundCount > 0
-        ? `${targetInterview.activeRoundCount} active`
-        : `${targetInterview.completedRoundCount} completed`;
-    const answerLabel = `${targetInterview.answeredQuestionCount} answered`;
-    return `${roundLabel} - ${answerLabel}`;
-}
-
 function CandidateDashboardEmptyState() {
     return (
-        <section className="candidate-dashboard-empty" aria-label="No completed practice rounds">
-            <p className="type-eyebrow">Coach Plan</p>
-            <h1>Build your first practice plan.</h1>
+        <Surface
+            as="section"
+            prominence="calm"
+            className="candidate-dashboard-empty"
+            aria-labelledby="candidate-dashboard-empty-title"
+        >
+            <h1 id="candidate-dashboard-empty-title">Build your first practice plan.</h1>
             <p>
-                Start with the role and interview you are preparing for. I will use that context to shape your first round and what comes next.
+                Tell us which role and interview you are preparing for to create your first round.
             </p>
-            <a className="candidate-dashboard-action" href="/candidate/setup">
+            <Button
+                href="/candidate/setup"
+                emphasis="primary"
+                density="default"
+                shape="app"
+                label="strong"
+            >
                 Set up practice
                 <ArrowRight size={16} aria-hidden="true" />
-            </a>
-        </section>
+            </Button>
+        </Surface>
     );
 }
 
@@ -368,7 +363,7 @@ function createDefaultCandidateDashboardPageDependencies(
                     if (run.lifecycleState !== "completed" || !run.result || !run.completedAt) {
                         return [];
                     }
-                    const accepted = parseAcceptedEvidenceFirstEvaluatorRun(run.result);
+                    const accepted = parseCompatiblePersistedAcceptedEvidenceFirstEvaluatorRun(run.result);
                     if (
                         !accepted
                         || accepted.evaluationRunId !== run.candidateAnswerEvaluationRunId

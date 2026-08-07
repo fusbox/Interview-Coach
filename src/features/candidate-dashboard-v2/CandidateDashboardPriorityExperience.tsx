@@ -113,6 +113,7 @@ export function CandidateDashboardPriorityExperience({
             {isCoachUpdateOpen && dashboard.coachUpdateDetail ? (
                 <CandidateCoachUpdateDialog
                     detail={dashboard.coachUpdateDetail}
+                    suppressPracticeActions={Boolean(dashboard.activeRound)}
                     onClose={() => setIsCoachUpdateOpen(false)}
                 />
             ) : null}
@@ -120,6 +121,8 @@ export function CandidateDashboardPriorityExperience({
             {isCoachPlanOpen && dashboard.coachPlan ? (
                 <CandidateCoachPlanReferenceDialog
                     plan={dashboard.coachPlan}
+                    initialPlanIncomplete={Boolean(dashboard.activeRound)}
+                    initialPlanAnsweredQuestionKeys={dashboard.activeRound?.answeredQuestionKeys}
                     onClose={() => setIsCoachPlanOpen(false)}
                 />
             ) : null}
@@ -283,8 +286,11 @@ function CandidateDashboardCoachUpdatePanel({
         if (state.status !== "candidate_coach_update_unavailable" || repairState === "submitting") return;
         setRepairState("submitting");
         try {
+            const repairParams = state.sourceQuestionKey
+                ? `?question=${encodeURIComponent(state.sourceQuestionKey)}`
+                : "";
             const response = await fetch(
-                `/candidate/session/${encodeURIComponent(state.candidatePracticeSessionId)}/coach-update/repair`,
+                `/candidate/session/${encodeURIComponent(state.candidatePracticeSessionId)}/coach-update/repair${repairParams}`,
                 { method: "POST" },
             );
             if (!response.ok) throw new Error("Coach Update repair failed.");
@@ -480,10 +486,10 @@ export function getDashboardPriority(
     dashboard: CandidateDashboardV2ReadModel,
     seenState: CoachUpdateSeenState,
 ): CandidateDashboardPriority {
-    if (dashboard.activeRound) return "active-round";
     if (dashboard.coachUpdateState.status === "candidate_coach_update_ready" && seenState !== "seen") {
         return "coach-update";
     }
+    if (dashboard.activeRound) return "active-round";
     return dashboard.practiceDirection.primaryAction === "practice_from_feedback"
         ? "practice-next"
         : "coach-plan";

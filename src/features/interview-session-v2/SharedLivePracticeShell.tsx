@@ -102,6 +102,7 @@ export function SharedLivePracticeShell({
 }: SharedLivePracticeShellProps) {
     const questionHeadingRef = useRef<HTMLHeadingElement | null>(null);
     const questionSurfaceRef = useRef<HTMLDivElement | null>(null);
+    const composerSurfaceRef = useRef<HTMLDivElement | null>(null);
     const currentQuestion = facts.questions[facts.currentQuestionIndex] ?? null;
     const nextQuestion = facts.questions[facts.currentQuestionIndex + 1] ?? null;
     const audioSessionId = facts.sessionId;
@@ -218,6 +219,7 @@ export function SharedLivePracticeShell({
         <QuestionAssistanceDisclosure
             key={currentQuestion.questionKey}
             anchorRef={questionSurfaceRef}
+            boundaryRef={composerSurfaceRef}
             disabled={interactionGateActive || answerModeChangeDisabled || answerPresentation.isBusy}
             endpoint={assistanceEndpoint}
             questionKey={currentQuestion.questionKey}
@@ -233,6 +235,7 @@ export function SharedLivePracticeShell({
                     tone="primary"
                     pressed={answerMode === mode}
                     disabled={answerModeChangeDisabled || !onAnswerModeChange}
+                    data-engagement-activity="answer_mode"
                     onClick={() => onAnswerModeChange?.(mode)}
                 >
                     {mode === "text" ? (
@@ -359,6 +362,7 @@ export function SharedLivePracticeShell({
                                 tone="primary"
                                 pressed={questionPlaybackControl.isPlaying}
                                 disabled={interactionGateActive || questionPlaybackControl.isLoading}
+                                data-engagement-activity="question_audio"
                                 onClick={questionPlaybackControl.onToggle}
                             >
                                 {questionPlaybackControl.isPlaying ? (
@@ -378,6 +382,7 @@ export function SharedLivePracticeShell({
                 </CutoutSurface>
 
                 <CutoutSurface
+                    ref={composerSurfaceRef}
                     className={styles.composer}
                     tone="composer"
                     cutout="bottom-start"

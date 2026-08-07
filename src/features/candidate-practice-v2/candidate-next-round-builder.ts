@@ -7,6 +7,7 @@ import {
     type CandidateFollowUpPracticeIntentKind,
     type CandidatePracticeIntentItemProvenance,
 } from "./candidate-follow-up-practice-intent";
+import { hasCandidateActivePracticeSessionForContext } from "./candidate-active-practice-session";
 import { resolveCandidateFollowUpQuestionRoot } from "./candidate-follow-up-session-creation";
 import {
     candidateNextRoundDraftItemLimit,
@@ -82,6 +83,12 @@ export function createCandidateNextRoundBuilderModel({
         session.candidateProfileId === candidateProfileId
         && session.roleProfileId === roleProfileId
     ));
+    const hasActivePracticeSession = hasCandidateActivePracticeSessionForContext({
+        candidateProfileId,
+        roleProfileId,
+        legacyTargetRole: coachPlan.targetRole,
+        practiceSessions: ownedSessions,
+    });
     const planQuestionsByRoot = new Map(coachPlan.questions.map((question) => [
         createRootKey(coachPlan.source.baselineCandidatePracticeSessionId, question.questionKey),
         question,
@@ -126,7 +133,7 @@ export function createCandidateNextRoundBuilderModel({
     const queuedRoots = new Set(normalizedItems.map((item) => (
         createRootKey(item.rootCandidatePracticeSessionId, item.rootQuestionKey)
     )));
-    const choices = coachPlan.questions.flatMap((question) => {
+    const choices = hasActivePracticeSession ? [] : coachPlan.questions.flatMap((question) => {
         if (!question.questionText) {
             return [];
         }

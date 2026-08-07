@@ -29,12 +29,14 @@ const chapters: LabChapterConfig[] = [
         beats: [
             {
                 id: "setup",
+                navLabel: "Set up",
                 title: "Tell us what you’re interviewing for",
                 body: "Share the role and interview stage. Interview Coach builds a practice set that fits that conversation — not a generic quiz.",
                 stage: <SetupStage />,
             },
             {
                 id: "landing",
+                navLabel: "Get ready",
                 title: "See your plan before you begin",
                 body: "You’ll get a clear rundown of the questions ahead, then one simple start when you’re ready.",
                 stage: <LandingStage />,
@@ -50,12 +52,14 @@ const chapters: LabChapterConfig[] = [
         beats: [
             {
                 id: "session",
+                navLabel: "Answer",
                 title: "Practice the question in front of you",
                 body: "Type or speak your answer. If you want help, open tips or an example structure — available when you need them, easy to ignore when you don’t.",
                 stage: <SessionStage />,
             },
             {
                 id: "coach",
+                navLabel: "Review",
                 title: "Hear what landed — and what to try next",
                 body: "After you submit, coaching points to what’s working and one concrete improvement. No score. No ranking.",
                 stage: <CoachingStage />,
@@ -70,12 +74,14 @@ const chapters: LabChapterConfig[] = [
         beats: [
             {
                 id: "dashboard",
+                navLabel: "Come back",
                 title: "Come back to a clear next step",
                 body: "Your practice home summarizes the latest round and highlights the highest-value thing to work on next.",
                 stage: <DashboardStage />,
             },
             {
                 id: "queue",
+                navLabel: "Practice again",
                 title: "Build a short round from what still needs work",
                 body: "Pick follow-ups from coaching or gaps in coverage, then jump into another focused practice without starting over.",
                 stage: <QueueStage />,

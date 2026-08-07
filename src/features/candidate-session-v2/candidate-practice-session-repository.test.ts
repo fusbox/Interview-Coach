@@ -565,15 +565,25 @@ describe("candidate practice session repository", () => {
             candidateProfileId: "22222222-2222-4222-8222-222222222222",
             candidatePracticeSessionId: "11111111-1111-4111-8111-111111111111",
             feedbackActionEvent,
+            nextProgress: {
+                status: "live_question",
+                currentQuestionIndex: 1,
+                answerMode: "text",
+            },
         })).resolves.toEqual({
             "slot-1": feedbackActionEvent,
         });
 
-        expect(query).toHaveBeenCalledWith(expect.stringContaining("feedback_actions_json = jsonb_set"), [
+        expect(query).toHaveBeenCalledWith(expect.stringContaining("progress_state_json = coalesce"), [
             "11111111-1111-4111-8111-111111111111",
             "22222222-2222-4222-8222-222222222222",
             ["slot-1"],
             feedbackActionEvent,
+            JSON.stringify({
+                status: "live_question",
+                currentQuestionIndex: 1,
+                answerMode: "text",
+            }),
         ]);
     });
 

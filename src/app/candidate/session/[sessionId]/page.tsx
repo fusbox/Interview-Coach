@@ -6,7 +6,11 @@ import {
 
 type CandidateSessionPageProps = {
     params: Promise<{ sessionId: string }>;
-    searchParams: Promise<{ entry?: string | string[] }>;
+    searchParams: Promise<{
+        entry?: string | string[];
+        pace?: string | string[];
+        question?: string | string[];
+    }>;
 };
 
 export default async function CandidateSessionPage(props: CandidateSessionPageProps) {

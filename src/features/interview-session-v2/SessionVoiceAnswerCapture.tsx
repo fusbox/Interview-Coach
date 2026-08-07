@@ -55,6 +55,7 @@ type SessionVoiceAnswerCaptureProps = {
     onAnswerModeLockChange?: (isAnswerModeLocked: boolean) => void;
     onInteractionGateChange?: (isInteractionGated: boolean) => void;
     onSubmitProgressChange?: (isPreparingAnswer: boolean) => void;
+    onRecordingChange?: (isRecording: boolean) => void;
 };
 
 export function SessionVoiceAnswerCapture({
@@ -69,6 +70,7 @@ export function SessionVoiceAnswerCapture({
     onAnswerModeLockChange,
     onInteractionGateChange,
     onSubmitProgressChange,
+    onRecordingChange,
 }: SessionVoiceAnswerCaptureProps) {
     const [phase, setPhase] = useState<VoiceCapturePhase>(initialTranscriptDraft ? "review" : "notice");
     const [recording, setRecording] = useState<SessionVoiceRecording | null>(null);
@@ -134,6 +136,11 @@ export function SessionVoiceAnswerCapture({
             onUnsafeLocalWorkChange?.(false);
         };
     }, [onUnsafeLocalWorkChange, phase]);
+
+    useEffect(() => {
+        onRecordingChange?.(phase === "recording");
+        return () => onRecordingChange?.(false);
+    }, [onRecordingChange, phase]);
 
     useEffect(() => {
         const isAnswerModeLocked = phase === "requesting_permission"

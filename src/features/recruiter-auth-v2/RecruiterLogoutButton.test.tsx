@@ -19,9 +19,13 @@ describe("RecruiterLogoutButton", () => {
         vi.stubGlobal("fetch", fetchMock);
         render(<RecruiterLogoutButton navigate={navigate} />);
 
-        await user.click(screen.getByRole("button", { name: "Sign out" }));
+        const signOutButton = screen.getByRole("button", { name: "Sign out" });
+        expect(signOutButton).toHaveClass("rounded-full");
+        await user.click(signOutButton);
 
         await waitFor(() => expect(navigate).toHaveBeenCalledWith("/login"));
+        expect(screen.getByRole("button", { name: "Signing out" })).toBeDisabled();
+        expect(screen.getByRole("button", { name: "Signing out" })).toHaveAttribute("aria-busy", "true");
         expect(fetchMock).toHaveBeenCalledWith("/api/auth/logout", {
             method: "POST",
             credentials: "same-origin",
@@ -37,6 +41,7 @@ describe("RecruiterLogoutButton", () => {
         await user.click(screen.getByRole("button", { name: "Sign out" }));
 
         await waitFor(() => expect(screen.getByRole("button", { name: "Sign out" })).toBeEnabled());
+        expect(screen.getByRole("button", { name: "Sign out" })).not.toHaveAttribute("aria-busy");
         expect(navigate).not.toHaveBeenCalled();
     });
 });

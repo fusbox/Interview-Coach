@@ -1,24 +1,22 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { AlertCircle, Eye, EyeOff, Loader2, LogIn } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { InterviewCoachBrandMark } from "@/features/brand-v2/InterviewCoachBrandMark";
-import { interviewCoachBrand } from "@/features/brand-v2/interview-coach-brand";
+import { AlertCircle, ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
+
+import { useNavigationHandoff } from "@/components/ui/use-navigation-handoff";
 
 export function RecruiterLoginExperience({ nextTarget }: { nextTarget: string }) {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { pending: submitting, claim, release } = useNavigationHandoff();
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        setSubmitting(true);
+        if (!claim()) return;
         setError(null);
 
         try {
@@ -34,39 +32,29 @@ export function RecruiterLoginExperience({ nextTarget }: { nextTarget: string })
             router.replace(nextTarget);
             router.refresh();
         } catch (cause) {
+            release();
             setError(cause instanceof Error ? cause.message : "Sign in failed.");
-        } finally {
-            setSubmitting(false);
         }
     }
 
     return (
-        <main className="recruiter-login-page">
-            <header className="recruiter-login-page__header">
-                <Link href="/" aria-label={`${interviewCoachBrand.displayName} Interview Coach home`}>
-                    <InterviewCoachBrandMark
-                        className="recruiter-login-page__logo"
-                        priority
-                    />
-                </Link>
+        <section className="candidate-account-entry candidate-account-entry--login" aria-labelledby="recruiter-login-title">
+            <header className="candidate-account-entry__intro">
+                <p className="type-eyebrow">Recruiter access</p>
+                <h1 id="recruiter-login-title">Welcome back.</h1>
+                <p>Sign in to continue to the recruiter workspace.</p>
             </header>
 
-            <section className="recruiter-login-panel" aria-labelledby="recruiter-login-title">
-                <div className="recruiter-login-panel__intro">
-                    <p className="type-eyebrow">Employee access</p>
-                    <h1 id="recruiter-login-title">Sign in to Interview Coach</h1>
-                    <p>Use your employee account to continue to the recruiter workspace.</p>
-                </div>
-
-                <form onSubmit={handleSubmit} aria-busy={submitting}>
+            <div className="candidate-account-panel candidate-account-panel--login">
+                <form className="candidate-account-form candidate-account-form--login" onSubmit={handleSubmit} aria-busy={submitting}>
                     {error ? (
-                        <div className="recruiter-login-error" role="alert">
+                        <div className="candidate-account-alert" role="alert">
                             <AlertCircle size={18} aria-hidden="true" />
                             <span>{error}</span>
                         </div>
                     ) : null}
 
-                    <div className="recruiter-login-field">
+                    <div className="candidate-account-field">
                         <label htmlFor="recruiter-email">Email</label>
                         <input
                             id="recruiter-email"
@@ -81,9 +69,9 @@ export function RecruiterLoginExperience({ nextTarget }: { nextTarget: string })
                         />
                     </div>
 
-                    <div className="recruiter-login-field">
+                    <div className="candidate-account-field">
                         <label htmlFor="recruiter-password">Password</label>
-                        <div className="recruiter-login-field__password">
+                        <span className="candidate-account-password">
                             <input
                                 id="recruiter-password"
                                 name="password"
@@ -103,23 +91,16 @@ export function RecruiterLoginExperience({ nextTarget }: { nextTarget: string })
                             >
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
-                        </div>
+                        </span>
                     </div>
 
-                    <Button
-                        type="submit"
-                        emphasis="primary"
-                        density="comfortable"
-                        shape="app"
-                        label="strong"
-                        className="recruiter-login-panel__submit"
-                        disabled={submitting}
-                    >
-                        {submitting ? <Loader2 className="recruiter-spin" size={18} /> : <LogIn size={18} />}
+                    <button type="submit" className="candidate-account-submit" disabled={submitting}>
+                        {submitting ? <Loader2 className="candidate-account-spin" size={19} /> : null}
                         {submitting ? "Signing in" : "Sign in"}
-                    </Button>
+                        {!submitting ? <ArrowRight size={19} /> : null}
+                    </button>
                 </form>
-            </section>
-        </main>
+            </div>
+        </section>
     );
 }

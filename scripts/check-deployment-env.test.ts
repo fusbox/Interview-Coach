@@ -50,6 +50,7 @@ const validVercelEnvironment = {
     CANDIDATE_RESUME_OCR_PROVIDER: "google_genai",
     CANDIDATE_RESUME_OCR_PROFILE: "google_gemini_2_5_flash_resume_photo_ocr_v1",
     CANDIDATE_HOST_LAUNCH_DEV_MODE: "false",
+    CANDIDATE_ENGAGEMENT_REPORTING_ENABLED: "false",
 };
 
 describe("deployment environment preflight", () => {
@@ -74,6 +75,7 @@ describe("deployment environment preflight", () => {
                 CANDIDATE_QUESTION_WORDING_PROFILE: "wrong",
                 CANDIDATE_HOST_LAUNCH_DEV_SECRET: "local-secret",
                 SESSION_VOICE_TRANSCRIPTION_FIXTURE_ENABLED: "true",
+                CANDIDATE_ENGAGEMENT_REPORTING_ENABLED: "true",
                 CANDIDATE_ACCOUNT_PUBLIC_ORIGIN: "https://accounts.example.com",
                 CANDIDATE_PRIVACY_VERSION: "",
             },
@@ -85,6 +87,7 @@ describe("deployment environment preflight", () => {
             ["CANDIDATE_QUESTION_WORDING_PROFILE", "VALUE_MISMATCH"],
             ["CANDIDATE_HOST_LAUNCH_DEV_SECRET", "LOCAL_ONLY_VALUE_PRESENT"],
             ["SESSION_VOICE_TRANSCRIPTION_FIXTURE_ENABLED", "LOCAL_ONLY_MODE_ENABLED"],
+            ["CANDIDATE_ENGAGEMENT_REPORTING_ENABLED", "VALUE_MISMATCH"],
             ["CANDIDATE_ACCOUNT_PUBLIC_ORIGIN", "ORIGIN_MISMATCH"],
             ["CANDIDATE_PRIVACY_VERSION", "REQUIRED"],
         ]));

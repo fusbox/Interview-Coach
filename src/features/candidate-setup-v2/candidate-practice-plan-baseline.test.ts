@@ -8,38 +8,48 @@ import {
     deriveCandidateInitialRoundPlan,
     deriveCandidateInitialRoundWording,
     getCandidateStageBaselineQuestionCount,
+    parseCandidatePracticePlanBaselineSnapshot,
 } from "./candidate-practice-plan-baseline";
 
 describe("candidate practice-plan baseline", () => {
-    it("keeps the stage baseline independent from a smaller first round", () => {
-        const baseline = createCandidatePracticePlanBaseline("first_interview");
+    it("keeps the full stage baseline in the initial session when the selected pace is smaller", () => {
+        const baseline = createCandidatePracticePlanBaseline("first_interview", 3);
         const generationPlan = createCandidateQuestionGenerationPlan({ baseline, selectedQuestionCount: 3 });
-        const round = deriveCandidateInitialRoundPlan({ baseline, generationPlan, selectedQuestionCount: 3 });
+        const round = deriveCandidateInitialRoundPlan({ baseline, generationPlan });
 
         expect(baseline.questionCount).toBe(7);
         expect(generationPlan.questionCount).toBe(7);
-        expect(round.questionCount).toBe(3);
+        expect(round.questionCount).toBe(7);
+        expect(baseline).toMatchObject({
+            status: "candidate_practice_plan_baseline_v2",
+            stageRecommendedQuestionCount: 7,
+            paceSize: 3,
+        });
         expect(round.slots.map((slot) => [slot.planQuestionId, slot.coverageKind])).toEqual([
             ["slot-1", "baseline"],
             ["slot-2", "baseline"],
             ["slot-3", "baseline"],
+            ["slot-4", "baseline"],
+            ["slot-5", "baseline"],
+            ["slot-6", "baseline"],
+            ["slot-7", "baseline"],
         ]);
     });
 
-    it("marks above-baseline questions supplemental without changing the denominator", () => {
-        const baseline = createCandidatePracticePlanBaseline("screening");
+    it("expands the canonical denominator when setup selects more than the stage recommendation", () => {
+        const baseline = createCandidatePracticePlanBaseline("screening", 7);
         const generationPlan = createCandidateQuestionGenerationPlan({ baseline, selectedQuestionCount: 7 });
-        const round = deriveCandidateInitialRoundPlan({ baseline, generationPlan, selectedQuestionCount: 7 });
+        const round = deriveCandidateInitialRoundPlan({ baseline, generationPlan });
 
-        expect(baseline.questionCount).toBe(5);
-        expect(round.slots.slice(0, 5).every((slot) => slot.coverageKind === "baseline")).toBe(true);
-        expect(round.slots.slice(5).map((slot) => slot.coverageKind)).toEqual(["supplemental", "supplemental"]);
+        expect(baseline.questionCount).toBe(7);
+        expect(baseline.stageRecommendedQuestionCount).toBe(5);
+        expect(round.slots.every((slot) => slot.coverageKind === "baseline")).toBe(true);
     });
 
-    it("persists full baseline wording while exposing only the selected round", () => {
-        const baseline = createCandidatePracticePlanBaseline("first_interview");
+    it("persists full baseline wording in the canonical initial session", () => {
+        const baseline = createCandidatePracticePlanBaseline("first_interview", 3);
         const generationPlan = createCandidateQuestionGenerationPlan({ baseline, selectedQuestionCount: 3 });
-        const round = deriveCandidateInitialRoundPlan({ baseline, generationPlan, selectedQuestionCount: 3 });
+        const round = deriveCandidateInitialRoundPlan({ baseline, generationPlan });
         const setupSnapshot = {
             targetRole: "Warehouse lead",
             jobDescription: "Coordinate safety workflows.",
@@ -55,7 +65,16 @@ describe("candidate practice-plan baseline", () => {
         });
 
         expect(deriveCandidateBaselineWording({ baseline, generatedWording }).questions).toHaveLength(7);
-        expect(deriveCandidateInitialRoundWording({ roundPlan: round, generatedWording }).questions).toHaveLength(3);
+        expect(deriveCandidateInitialRoundWording({ roundPlan: round, generatedWording }).questions).toHaveLength(7);
+    });
+
+    it("rejects a persisted pace larger than its immutable baseline", () => {
+        const baseline = createCandidatePracticePlanBaseline("screening", 5);
+
+        expect(parseCandidatePracticePlanBaselineSnapshot({
+            ...baseline,
+            paceSize: 7,
+        })).toBeNull();
     });
 
     it("uses the ratified stage baseline counts", () => {

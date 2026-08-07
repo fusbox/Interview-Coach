@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertCircle, ArrowRight, Clock3, MailCheck, PlayCircle, UserCheck, Users } from "lucide-react";
 
+import { Surface } from "@/components/ui/surface";
 import type {
     RecruiterDashboardDeliveryState,
     RecruiterDashboardEntryState,
@@ -26,12 +27,12 @@ export function RecruiterDashboardExperience({ model }: { model: RecruiterDashbo
                     <h1>Invitations</h1>
                     <p>Track delivery, entry, and practice progress for the candidates you invited.</p>
                 </div>
-                <Link className="recruiter-dashboard-create-link" href="/recruiter/create">
+                <Link className="ui-button ui-button--primary recruiter-dashboard-create-link" href="/recruiter/create">
                     Create invitations <ArrowRight size={17} aria-hidden="true" />
                 </Link>
             </header>
 
-            <section className="recruiter-dashboard-summary" aria-label="Invitation summary">
+            <Surface as="section" prominence="calm" className="recruiter-dashboard-summary" aria-label="Invitation summary">
                 {summaryItems.map(({ label, value, icon: Icon }) => (
                     <article key={label} className={label === "Needs attention" && value > 0 ? "is-attention" : undefined}>
                         <span aria-hidden="true"><Icon size={17} /></span>
@@ -41,9 +42,9 @@ export function RecruiterDashboardExperience({ model }: { model: RecruiterDashbo
                         </div>
                     </article>
                 ))}
-            </section>
+            </Surface>
 
-            <section className="recruiter-dashboard-activity" aria-labelledby="recruiter-dashboard-activity-title">
+            <Surface as="section" prominence="calm" className="recruiter-dashboard-activity" aria-labelledby="recruiter-dashboard-activity-title">
                 <div className="recruiter-dashboard-activity__heading">
                     <div>
                         <p className="type-eyebrow">Invitation activity</p>
@@ -57,7 +58,7 @@ export function RecruiterDashboardExperience({ model }: { model: RecruiterDashbo
                         <span aria-hidden="true"><MailCheck size={22} /></span>
                         <h3>No invitations yet</h3>
                         <p>Create an invitation to begin tracking candidate entry and practice progress.</p>
-                        <Link className="recruiter-dashboard-create-link" href="/recruiter/create">
+                        <Link className="ui-button ui-button--primary recruiter-dashboard-create-link" href="/recruiter/create">
                             Create invitations <ArrowRight size={17} aria-hidden="true" />
                         </Link>
                     </div>
@@ -84,7 +85,7 @@ export function RecruiterDashboardExperience({ model }: { model: RecruiterDashbo
                         Email accepted means the configured provider accepted the message. It does not confirm mailbox delivery.
                     </p>
                 ) : null}
-            </section>
+            </Surface>
         </main>
     );
 }

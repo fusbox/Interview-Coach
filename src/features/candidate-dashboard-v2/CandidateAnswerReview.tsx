@@ -1,7 +1,5 @@
 "use client";
 
-import { ArrowRight, MessageSquareQuote } from "lucide-react";
-
 import type { CandidateCoachUpdateQuestionDetail } from "./candidate-coach-update-detail";
 import { CandidateTranscriptCanvas } from "./CandidateTranscriptCanvas";
 
@@ -43,44 +41,42 @@ export function CandidateAnswerReview({
                 />
             </section>
 
-            {observation ? (
+            <div className={`candidate-answer-review__coaching${observation ? " has-observation" : ""}`}>
+                {observation ? (
+                    <aside
+                        className="candidate-answer-review__note"
+                        aria-label={`What the coach noticed in question ${item.questionNumber}`}
+                    >
+                        <div>
+                            <div className="candidate-answer-review__meta">
+                                <p>What I noticed</p>
+                            </div>
+                            <p className="candidate-answer-review__message">{observation}</p>
+                        </div>
+                    </aside>
+                ) : null}
+
                 <aside
-                    className="candidate-answer-review__note surface-sky"
-                    aria-label={`What the coach noticed in question ${item.questionNumber}`}
+                    className="candidate-answer-review__next"
+                    aria-label={`What to try next for question ${item.questionNumber}`}
                 >
-                    <span className="candidate-answer-review__icon" aria-hidden="true">
-                        <MessageSquareQuote size={16} />
-                    </span>
                     <div>
                         <div className="candidate-answer-review__meta">
-                            <p>What I noticed</p>
-                            <span>Question {item.questionNumber}</span>
+                            <p>Try next</p>
                         </div>
-                        <p className="candidate-answer-review__message">{observation}</p>
+                        <p className="candidate-answer-review__message">{nextFocus}</p>
+                        {gap?.suggestedShape.length ? (
+                            <div className="candidate-answer-review__shape">
+                                <ol aria-label="Suggested answer structure">
+                                    {gap.suggestedShape.map((part, index) => (
+                                        <li key={`${part}-${index}`}>{part}</li>
+                                    ))}
+                                </ol>
+                            </div>
+                        ) : null}
                     </div>
                 </aside>
-            ) : null}
-
-            <aside
-                className="candidate-answer-review__next"
-                aria-label={`What to try next for question ${item.questionNumber}`}
-            >
-                <span className="candidate-answer-review__icon" aria-hidden="true">
-                    <ArrowRight size={17} strokeWidth={2.2} />
-                </span>
-                <div>
-                    <div className="candidate-answer-review__meta">
-                        <p>Try next</p>
-                        <span>Question {item.questionNumber}</span>
-                    </div>
-                    <p className="candidate-answer-review__message">{nextFocus}</p>
-                    {gap?.suggestedShape.length ? (
-                        <p className="candidate-answer-review__shape">
-                            {gap.suggestedShape.join(" / ")}
-                        </p>
-                    ) : null}
-                </div>
-            </aside>
+            </div>
         </div>
     );
 }

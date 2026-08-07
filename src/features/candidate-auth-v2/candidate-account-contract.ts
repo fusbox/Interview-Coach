@@ -7,8 +7,11 @@ export const candidateRegistrationRequestSchema = z.object({
     lastName: nameSchema,
     email: z.string().trim().email().max(320),
     password: z.string().min(12).max(128),
-    phone: z.string().trim().min(8).max(32),
-    postalCode: z.string().trim().regex(/^[0-9]{5}(?:-[0-9]{4})?$/),
+    phone: z.string().trim().min(8).max(32).refine(
+        (value) => normalizeCandidatePhone(value) !== null,
+        "Enter a valid US or international phone number.",
+    ),
+    postalCode: z.string().trim().regex(/^[0-9]{5}$/),
     contactPreferences: z.object({
         email: z.boolean(),
         sms: z.boolean(),
@@ -54,6 +57,7 @@ export type CandidateRegistrationRequest = z.infer<typeof candidateRegistrationR
 
 export function normalizeCandidatePhone(value: string): string | null {
     const trimmed = value.trim();
+    if (!/^\+?[0-9().\-\s]+$/.test(trimmed)) return null;
     const digits = trimmed.replace(/\D/g, "");
     if (trimmed.startsWith("+")) {
         return /^[1-9][0-9]{7,14}$/.test(digits) ? `+${digits}` : null;

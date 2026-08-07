@@ -17,6 +17,11 @@ describe("candidate practice transition copy", () => {
 
         rerender(<CandidatePracticeEntryTransitionOverlay isReleasing={false} mode="coach_plan" />);
         expect(screen.getByRole("heading", { name: "Preparing your Coach Plan" })).toBeInTheDocument();
+
+        rerender(<CandidatePracticeEntryTransitionOverlay isReleasing={false} mode="dashboard" />);
+        expect(screen.getByRole("heading", { name: "Returning to your dashboard" })).toBeInTheDocument();
+        expect(screen.getByText(/answer is saved.*continue your plan/i)).toBeInTheDocument();
+        expect(screen.queryByText("Practice complete")).not.toBeInTheDocument();
     });
 
     it("shows the safe accepted resume label on candidate-owned landing screens", () => {
@@ -129,7 +134,7 @@ describe("candidate practice transition copy", () => {
         }
     });
 
-    it("leaves a routed follow-up transition to the destination session", () => {
+    it("locks a routed follow-up start immediately while leaving the entry overlay to the destination session", () => {
         const unlock = vi.fn();
         render(<CandidatePreSessionLanding
             variant="follow_up"
@@ -145,10 +150,16 @@ describe("candidate practice transition copy", () => {
             }}
         />);
 
-        fireEvent.submit(screen.getByRole("form", { name: "Start follow-up practice" }));
+        const form = screen.getByRole("form", { name: "Start follow-up practice" });
+        expect(fireEvent.submit(form)).toBe(true);
 
         expect(unlock).toHaveBeenCalledOnce();
-        expect(screen.getByRole("button", { name: "Start practice" })).toBeEnabled();
+        expect(form).toHaveAttribute("aria-busy", "true");
+        expect(screen.getByRole("button", { name: "Start practice" })).toBeDisabled();
+        expect(screen.getByRole("status")).toHaveTextContent("Starting practice");
         expect(screen.queryByRole("heading", { name: "Entering practice space" })).not.toBeInTheDocument();
+
+        expect(fireEvent.submit(form)).toBe(false);
+        expect(unlock).toHaveBeenCalledOnce();
     });
 });

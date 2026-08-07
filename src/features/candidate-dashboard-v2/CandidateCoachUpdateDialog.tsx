@@ -4,11 +4,11 @@ import useEmblaCarousel from "embla-carousel-react";
 import {
     ChevronLeft,
     ChevronRight,
-    X,
 } from "lucide-react";
 import {
     useCallback,
     useEffect,
+    useLayoutEffect,
     useRef,
     useState,
     type CSSProperties,
@@ -16,16 +16,22 @@ import {
     type PointerEvent as ReactPointerEvent,
 } from "react";
 
-import { CandidateCoachAvatar } from "../candidate-v2/CandidateCoachAvatar";
 import type { CandidateCoachUpdateDetail } from "./candidate-coach-update-detail";
 import { CandidateAnswerReview } from "./CandidateAnswerReview";
 import { CandidateQuestionPracticeActions } from "./CandidatePracticeNextActions";
+import {
+    CandidateNextRoundReviewFooter,
+    useCandidateNextRoundBuilder,
+} from "./CandidateNextRoundBuilderExperience";
+import { CandidateOpenedSurfaceHeader } from "@/features/candidate-v2/CandidateOpenedSurfaceHeader";
 
 export function CandidateCoachUpdateDialog({
     detail,
+    suppressPracticeActions = false,
     onClose,
 }: {
     detail: CandidateCoachUpdateDetail;
+    suppressPracticeActions?: boolean;
     onClose: () => void;
 }) {
     const [selectedIndex, setSelectedIndex] = useState(0);
@@ -36,6 +42,9 @@ export function CandidateCoachUpdateDialog({
         slidesToScroll: 1,
     });
     const dialogRef = useRef<HTMLElement | null>(null);
+    const backdropRef = useRef<HTMLDivElement | null>(null);
+    const carouselViewportRef = useRef<HTMLDivElement | null>(null);
+    const slideRefs = useRef<Array<HTMLDivElement | null>>([]);
     const closeButtonRef = useRef<HTMLButtonElement | null>(null);
     const contentRef = useRef<HTMLDivElement | null>(null);
     const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -43,6 +52,23 @@ export function CandidateCoachUpdateDialog({
     const sheetDragOffsetRef = useRef(0);
     const [sheetDragOffset, setSheetDragOffset] = useState(0);
     const [isSheetDragging, setIsSheetDragging] = useState(false);
+    const nextRoundBuilder = useCandidateNextRoundBuilder();
+    const isBuilderOpen = Boolean(nextRoundBuilder?.isOpen);
+    const isBuilderOpenRef = useRef(isBuilderOpen);
+
+    useEffect(() => {
+        isBuilderOpenRef.current = isBuilderOpen;
+        const backdrop = backdropRef.current;
+        if (!backdrop) return;
+        if (isBuilderOpen) backdrop.setAttribute("inert", "");
+        else backdrop.removeAttribute("inert");
+        return () => backdrop.removeAttribute("inert");
+    }, [isBuilderOpen]);
+
+    const setCarouselViewport = useCallback((node: HTMLDivElement | null) => {
+        carouselViewportRef.current = node;
+        emblaRef(node);
+    }, [emblaRef]);
 
     const resetContentScroll = useCallback(() => {
         if (!contentRef.current) return;
@@ -88,6 +114,28 @@ export function CandidateCoachUpdateDialog({
         };
     }, [emblaApi, resetContentScroll, revealNavigationItem]);
 
+    useLayoutEffect(() => {
+        const viewport = carouselViewportRef.current;
+        const selectedSlide = slideRefs.current[selectedIndex];
+        if (!viewport || !selectedSlide) return undefined;
+
+        const syncHeight = () => {
+            const height = selectedSlide.getBoundingClientRect().height;
+            if (height > 0) viewport.style.height = `${Math.ceil(height)}px`;
+        };
+        syncHeight();
+
+        const resizeObserver = typeof ResizeObserver === "undefined"
+            ? null
+            : new ResizeObserver(syncHeight);
+        resizeObserver?.observe(selectedSlide);
+        window.addEventListener("resize", syncHeight);
+        return () => {
+            resizeObserver?.disconnect();
+            window.removeEventListener("resize", syncHeight);
+        };
+    }, [detail.items.length, selectedIndex]);
+
     useEffect(() => {
         previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         const previousOverflow = document.body.style.overflow;
@@ -95,6 +143,7 @@ export function CandidateCoachUpdateDialog({
         closeButtonRef.current?.focus();
 
         const handleKeyDown = (event: KeyboardEvent) => {
+            if (isBuilderOpenRef.current) return;
             if (event.key === "Escape") {
                 event.preventDefault();
                 onClose();
@@ -183,10 +232,56 @@ export function CandidateCoachUpdateDialog({
         "--candidate-coach-update-sheet-offset": `${sheetDragOffset}px`,
     } as CSSProperties;
 
+    const questionNavigation = detail.items.length > 1 ? (
+        <nav className="candidate-coach-update-nav" aria-label="Coach Update question navigation">
+            <button
+                type="button"
+                aria-label="Previous question feedback"
+                disabled={selectedIndex === 0}
+                onClick={() => selectQuestion(selectedIndex - 1)}
+            >
+                <ChevronLeft size={17} aria-hidden="true" />
+            </button>
+            <div role="group" aria-label="Question feedback slides">
+                {detail.items.map((item, index) => {
+                    const isCurrent = selectedIndex === index;
+                    return (
+                        <button
+                            key={item.questionKey}
+                            id={`coach-update-picker-${item.questionKey}`}
+                            type="button"
+                            aria-controls={`coach-update-slide-${item.questionKey}`}
+                            aria-current={isCurrent ? "true" : undefined}
+                            aria-label={isCurrent
+                                ? `Current feedback: question ${item.questionNumber}`
+                                : `Go to question ${item.questionNumber} feedback`}
+                            className={`candidate-coach-update-nav__picker${isCurrent ? " is-current" : ""}`}
+                            tabIndex={isCurrent ? 0 : -1}
+                            onClick={() => selectQuestion(index)}
+                            onKeyDown={(event) => handleTabKeyDown(event, index)}
+                        >
+                            Q{item.questionNumber}
+                        </button>
+                    );
+                })}
+            </div>
+            <button
+                type="button"
+                aria-label="Next question feedback"
+                disabled={selectedIndex === detail.items.length - 1}
+                onClick={() => selectQuestion(selectedIndex + 1)}
+            >
+                <ChevronRight size={17} aria-hidden="true" />
+            </button>
+        </nav>
+    ) : undefined;
+
     return (
         <div
+            ref={backdropRef}
             className="candidate-coach-update-backdrop"
             data-testid="coach-update-backdrop"
+            aria-hidden={isBuilderOpen || undefined}
             onPointerDown={(event) => {
                 if (event.target === event.currentTarget) onClose();
             }}
@@ -210,72 +305,29 @@ export function CandidateCoachUpdateDialog({
                 >
                     <span />
                 </div>
-                <header className="candidate-coach-update-dialog__header">
-                    <CandidateCoachAvatar
-                        variant="surface"
-                        className="candidate-coach-update-dialog__avatar"
-                    />
-                    <h2 id="candidate-coach-update-title">Let&apos;s review your latest practice.</h2>
-                    <button ref={closeButtonRef} type="button" onClick={onClose} aria-label="Close Coach Update">
-                        <X size={19} aria-hidden="true" />
-                    </button>
-                </header>
+                <CandidateOpenedSurfaceHeader
+                    className="candidate-coach-update-dialog__header"
+                    closeButtonRef={closeButtonRef}
+                    closeLabel="Close Coach Update"
+                    navigation={questionNavigation}
+                    onClose={onClose}
+                    title="Let's review your latest practice."
+                    titleId="candidate-coach-update-title"
+                />
 
                 <div className="candidate-coach-update-dialog__body" ref={contentRef}>
                     <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
                         Showing question feedback {selectedIndex + 1} of {detail.items.length}
                     </p>
 
-                    {detail.items.length > 1 ? (
-                        <nav className="candidate-coach-update-nav" aria-label="Coach Update question navigation">
-                            <button
-                                type="button"
-                                aria-label="Previous question feedback"
-                                disabled={selectedIndex === 0}
-                                onClick={() => selectQuestion(selectedIndex - 1)}
-                            >
-                                <ChevronLeft size={17} aria-hidden="true" />
-                            </button>
-                            <div role="group" aria-label="Question feedback slides">
-                                {detail.items.map((item, index) => {
-                                    const isCurrent = selectedIndex === index;
-                                    return (
-                                        <button
-                                            key={item.questionKey}
-                                            id={`coach-update-picker-${item.questionKey}`}
-                                            type="button"
-                                            aria-controls={`coach-update-slide-${item.questionKey}`}
-                                            aria-current={isCurrent ? "true" : undefined}
-                                            aria-label={isCurrent
-                                                ? `Current feedback: question ${item.questionNumber}`
-                                                : `Go to question ${item.questionNumber} feedback`}
-                                            className={`candidate-coach-update-nav__picker${isCurrent ? " is-current" : ""}`}
-                                            tabIndex={isCurrent ? 0 : -1}
-                                            onClick={() => selectQuestion(index)}
-                                            onKeyDown={(event) => handleTabKeyDown(event, index)}
-                                        >
-                                            Q{item.questionNumber}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                            <button
-                                type="button"
-                                aria-label="Next question feedback"
-                                disabled={selectedIndex === detail.items.length - 1}
-                                onClick={() => selectQuestion(selectedIndex + 1)}
-                            >
-                                <ChevronRight size={17} aria-hidden="true" />
-                            </button>
-                        </nav>
-                    ) : null}
-
                     <div
                         className="candidate-coach-update-carousel"
-                        ref={emblaRef}
+                        ref={setCarouselViewport}
                         role="region"
                         aria-label="Coach Update question feedback carousel"
                         aria-roledescription="carousel"
+                        data-has-previous={selectedIndex > 0}
+                        data-has-next={selectedIndex < detail.items.length - 1}
                     >
                         <div className="candidate-coach-update-carousel__track">
                             {detail.items.map((item, index) => {
@@ -283,6 +335,9 @@ export function CandidateCoachUpdateDialog({
                                 return (
                                     <div
                                         className={`candidate-coach-update-carousel__slide${isCurrent ? " is-current" : ""}`}
+                                        ref={(node) => {
+                                            slideRefs.current[index] = node;
+                                        }}
                                         id={`coach-update-slide-${item.questionKey}`}
                                         key={item.questionKey}
                                         role="group"
@@ -292,7 +347,7 @@ export function CandidateCoachUpdateDialog({
                                     >
                                         <article className="candidate-coach-update-question">
                                             <header className="candidate-coach-update-question__context">
-                                                <p>Question {item.questionNumber} &middot; {item.category}</p>
+                                                <p>{item.category}</p>
                                                 <h3>{item.questionText}</h3>
                                             </header>
 
@@ -304,14 +359,16 @@ export function CandidateCoachUpdateDialog({
                                                 </p>
                                             ) : null}
 
-                                            <CandidateQuestionPracticeActions
-                                                pointer={{
-                                                    sourceCandidatePracticeSessionId: item.focusedPracticeAction.source.candidatePracticeSessionId,
-                                                    sourceQuestionKey: item.focusedPracticeAction.source.questionKey,
-                                                }}
-                                                practiceNowHref={item.focusedPracticeAction.href}
-                                                isCurrent={isCurrent}
-                                            />
+                                            {!suppressPracticeActions ? (
+                                                <CandidateQuestionPracticeActions
+                                                    pointer={{
+                                                        sourceCandidatePracticeSessionId: item.focusedPracticeAction.source.candidatePracticeSessionId,
+                                                        sourceQuestionKey: item.focusedPracticeAction.source.questionKey,
+                                                    }}
+                                                    practiceNowHref={item.focusedPracticeAction.href}
+                                                    isCurrent={isCurrent}
+                                                />
+                                            ) : null}
                                         </article>
                                     </div>
                                 );
@@ -319,6 +376,7 @@ export function CandidateCoachUpdateDialog({
                         </div>
                     </div>
                 </div>
+                <CandidateNextRoundReviewFooter className="candidate-next-round-review-footer--sheet" />
             </section>
         </div>
     );

@@ -213,6 +213,7 @@ export const CutoutSurface = React.forwardRef<
     ) => {
         const rootRef = React.useRef<HTMLDivElement | null>(null);
         const gradientId = React.useId().replaceAll(":", "");
+        const rimGradientId = `${gradientId}-rim`;
         const geometry = useCutoutGeometry(rootRef);
         const path = createCutoutPath(geometry);
         const transform = getCutoutTransform(
@@ -286,8 +287,38 @@ export const CutoutSurface = React.forwardRef<
                                 offset="100%"
                             />
                         </linearGradient>
+                        <linearGradient
+                            id={rimGradientId}
+                            x1="0%"
+                            y1="0%"
+                            x2="100%"
+                            y2="100%"
+                        >
+                            <stop
+                                className="ui-cutout-surface__rim-stop-start"
+                                offset="0%"
+                            />
+                            <stop
+                                className="ui-cutout-surface__rim-stop-middle"
+                                offset="54%"
+                            />
+                            <stop
+                                className="ui-cutout-surface__rim-stop-end"
+                                offset="100%"
+                            />
+                        </linearGradient>
                     </defs>
                     <g transform={transform}>
+                        <path
+                            className="ui-cutout-surface__rim"
+                            d={path}
+                            fill="none"
+                            stroke={
+                                tone === "question" && state === "default"
+                                    ? `url(#${rimGradientId})`
+                                    : "none"
+                            }
+                        />
                         <path
                             className="ui-cutout-surface__path"
                             d={path}

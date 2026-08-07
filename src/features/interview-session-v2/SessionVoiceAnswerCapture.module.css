@@ -27,7 +27,7 @@
     grid-template-rows: auto minmax(3.5rem, 1fr) auto;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-2) var(--space-5) 0;
+    padding: var(--space-7) var(--space-8) 0;
 }
 
 .instrument {
@@ -37,6 +37,11 @@
 }
 
 .recordControl {
+    --record-control-contour-light: rgb(var(--solid-foreground) / 0.4);
+    --record-control-contour-shade: rgb(var(--primary-solid-deep) / 0.28);
+    --record-control-state-halo: 0 0 0 0 transparent;
+    --record-control-elevation: var(--elevation-cta);
+
     display: inline-flex;
     width: 5.25rem;
     height: 5.25rem;
@@ -46,7 +51,11 @@
     border-radius: 50%;
     outline: 0;
     background: rgb(var(--primary-solid));
-    box-shadow: var(--elevation-cta);
+    box-shadow:
+        inset 0 1.5px 2px var(--record-control-contour-light),
+        inset 0 -1.5px 2px var(--record-control-contour-shade),
+        var(--record-control-state-halo),
+        var(--record-control-elevation);
     color: rgb(var(--solid-foreground));
     cursor: pointer;
     transition:
@@ -55,26 +64,33 @@
 }
 
 .recordControl:hover {
-    box-shadow: var(--shadow-raised-2);
+    --record-control-contour-light: rgb(var(--solid-foreground) / 0.46);
+    --record-control-elevation: var(--shadow-raised-2);
+
     transform: translateY(-0.0625rem);
 }
 
 .recordControl:active {
+    --record-control-contour-light: rgb(var(--solid-foreground) / 0.32);
+    --record-control-elevation: var(--elevation-row);
+
     transform: translateY(0);
 }
 
 .recordControl:focus-visible {
     box-shadow:
+        inset 0 1.5px 2px var(--record-control-contour-light),
+        inset 0 -1.5px 2px var(--record-control-contour-shade),
         0 0 0 3px rgb(var(--surface)),
         0 0 0 6px rgb(var(--ring)),
-        var(--elevation-cta);
+        var(--record-control-state-halo),
+        var(--record-control-elevation);
 }
 
 .stopControl {
+    --record-control-state-halo: 0 0 0 0.375rem rgb(var(--destructive) / 0.16);
+
     background: rgb(var(--destructive));
-    box-shadow:
-        0 0 0 0.375rem rgb(var(--destructive) / 0.16),
-        var(--elevation-cta);
 }
 
 .recording {
@@ -82,7 +98,7 @@
     grid-template-rows: auto minmax(3.5rem, 1fr) auto;
     align-items: center;
     gap: var(--space-2);
-    padding: var(--space-2) var(--space-5) 0;
+    padding: var(--space-7) var(--space-8) 0;
 }
 
 .recordingHeader {
@@ -133,7 +149,7 @@
     display: grid;
     align-content: center;
     gap: var(--space-3);
-    padding: var(--space-2) var(--space-2) 0;
+    padding: var(--space-3) var(--space-6) 0;
 }
 
 .readyState {
@@ -210,7 +226,7 @@
     min-height: 0;
     flex-direction: column;
     gap: var(--space-2);
-    padding: var(--space-2);
+    padding: var(--space-3) var(--space-6);
 }
 
 .reviewHeader {
@@ -283,7 +299,7 @@
     align-content: center;
     justify-items: center;
     gap: var(--space-3);
-    padding: var(--space-4);
+    padding: var(--space-6);
     text-align: center;
 }
 
@@ -302,7 +318,7 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-3);
-    padding: var(--space-4);
+    padding: var(--space-6);
     color: rgb(var(--primary));
 }
 
@@ -312,6 +328,16 @@
 }
 
 @media (max-width: 640px) {
+    .notice,
+    .recording {
+        padding-inline: var(--space-6);
+    }
+
+    .recorded,
+    .review {
+        padding-inline: var(--space-5);
+    }
+
     .actions > :global(.ui-button) {
         flex: 1 1 8.5rem;
     }
@@ -325,6 +351,18 @@
         width: auto;
         min-width: 0;
         flex: 1 1 0;
+    }
+}
+
+@media (max-width: 420px) {
+    .notice,
+    .recording {
+        padding-inline: var(--space-5);
+    }
+
+    .recorded,
+    .review {
+        padding-inline: var(--space-4);
     }
 }
 

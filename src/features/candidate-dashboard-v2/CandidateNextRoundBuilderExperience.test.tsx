@@ -6,50 +6,30 @@ import type { CandidateNextRoundBuilderModel } from "@/features/candidate-practi
 
 import {
     CandidateNextRoundBuilderExperience,
-    CandidateNextRoundBuilderTrigger,
+    CandidateNextRoundReviewFooter,
+    useCandidateNextRoundBuilder,
 } from "./CandidateNextRoundBuilderExperience";
 
 describe("CandidateNextRoundBuilderExperience", () => {
-    it("expands a desktop builder leftward from the trigger's right edge", async () => {
+    it("keeps the round handoff hidden while empty and opens the Plan workspace explicitly", async () => {
         const user = userEvent.setup();
-        const matchMedia = vi.spyOn(window, "matchMedia").mockImplementation((query) => ({
-            matches: query === "(min-width: 48rem)",
-            media: query,
-            onchange: null,
-            addListener: () => undefined,
-            removeListener: () => undefined,
-            addEventListener: () => undefined,
-            removeEventListener: () => undefined,
-            dispatchEvent: () => false,
-        }));
-        const triggerRight = window.innerWidth - 24;
-        const triggerRect = {
-            bottom: 72,
-            height: 48,
-            left: triggerRight - 180,
-            right: triggerRight,
-            top: 24,
-            width: 180,
-            x: triggerRight - 180,
-            y: 24,
-            toJSON: () => ({}),
-        } as DOMRect;
-
         renderBuilder({ initialBuilder: createBuilder(0, 3) });
-        const trigger = screen.getByRole("button", { name: "Next practice round" });
-        vi.spyOn(trigger, "getBoundingClientRect").mockReturnValue(triggerRect);
 
-        await user.click(trigger);
+        expect(screen.queryByRole("button", { name: "Review next round" })).not.toBeInTheDocument();
+        await user.click(screen.getByRole("button", { name: "Open next round" }));
 
-        const dialog = screen.getByRole("dialog", { name: "Next practice round" });
-        expect(dialog).toHaveClass("is-anchored");
-        expect(dialog.style.getPropertyValue("--next-round-anchor-right"))
-            .toBe(`${window.innerWidth - triggerRect.right}px`);
-        expect(dialog.style.getPropertyValue("--next-round-anchor-width")).toBe("180px");
-        matchMedia.mockRestore();
+        const dialog = screen.getByRole("dialog", { name: "Next round" });
+        const nextRoundHeading = within(dialog).getByRole("heading", { name: "Next round" });
+        expect(nextRoundHeading.closest("header")).toHaveClass("candidate-opened-surface-header");
+        expect(within(nextRoundHeading.closest("header") as HTMLElement).getByLabelText("0 questions queued"))
+            .toHaveTextContent("0");
+        expect(within(dialog).getByRole("heading", { name: "Coach Plan" })).toBeInTheDocument();
+        expect(within(dialog).getByText("Available to add")).toBeInTheDocument();
+        expect(within(dialog).queryByRole("heading", { name: "Questions in your next round" }))
+            .not.toBeInTheDocument();
     });
 
-    it("opens from the truthful header count and supports add, reorder, and confirmed clear", async () => {
+    it("opens from the review handoff and supports add, reorder, and confirmed clear", async () => {
         const user = userEvent.setup();
         const requestMutation = vi.fn(async (_builder, mutation) => {
             if (mutation.kind === "add") {
@@ -63,20 +43,21 @@ describe("CandidateNextRoundBuilderExperience", () => {
 
         renderBuilder({ requestMutation });
 
-        const trigger = screen.getByRole("button", { name: "Next practice round, 1 queued" });
+        const trigger = screen.getByRole("button", { name: "Review next round" });
         await user.click(trigger);
-        const dialog = screen.getByRole("dialog", { name: "Next practice round" });
+        const dialog = screen.getByRole("dialog", { name: "Next round" });
         expect(within(dialog).queryByText("Quality Inspector")).not.toBeInTheDocument();
         expect(within(dialog).queryByText("Preparing for")).not.toBeInTheDocument();
         expect(within(dialog).queryByText("In this round")).not.toBeInTheDocument();
         expect(within(dialog).queryByText("1 of 20")).not.toBeInTheDocument();
         expect(within(dialog).queryByText("Coach feedback")).not.toBeInTheDocument();
         expect(within(dialog).queryByText("Plan coverage")).not.toBeInTheDocument();
-        expect(within(dialog).getByRole("heading", { name: "Available to add" })).toBeInTheDocument();
+        expect(within(dialog).getByRole("heading", { name: "Coach Plan" })).toBeInTheDocument();
+        expect(within(dialog).getByText("Available to add")).toBeInTheDocument();
         const footerButtons = within(dialog.querySelector("footer")!).getAllByRole("button");
         expect(footerButtons.at(-1)).toHaveAccessibleName("Start practice");
 
-        await user.click(within(dialog).getByRole("button", { name: "Add question 2 to next practice round" }));
+        await user.click(within(dialog).getByRole("button", { name: "Add question 2 to next round" }));
         expect(requestMutation).toHaveBeenLastCalledWith(
             expect.objectContaining({ version: 3 }),
             {
@@ -85,7 +66,7 @@ describe("CandidateNextRoundBuilderExperience", () => {
                 sourceQuestionKey: "slot-2",
             },
         );
-        expect(screen.getByRole("button", { name: "Next practice round, 2 queued" })).toBeInTheDocument();
+        expect(within(dialog).getByLabelText("2 questions queued")).toHaveTextContent("2");
 
         await user.click(within(dialog).getByRole("button", { name: "Move question 2 up" }));
         expect(requestMutation).toHaveBeenLastCalledWith(
@@ -108,8 +89,74 @@ describe("CandidateNextRoundBuilderExperience", () => {
             expect.objectContaining({ version: 5 }),
             { kind: "clear" },
         );
-        expect(within(dialog).getByText("Add questions from your Coach Plan to build this round.")).toBeInTheDocument();
+        expect(within(dialog).queryByRole("heading", { name: "Questions in your next round" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Review next round" })).not.toBeInTheDocument();
         expect(within(dialog).getByRole("button", { name: "Start practice" })).toBeDisabled();
+    });
+
+    it("shows pending feedback on the exact add, reorder, remove, and clear controls", async () => {
+        const user = userEvent.setup();
+        const addRequest = deferred<BuilderMutationResult>();
+        const reorderRequest = deferred<BuilderMutationResult>();
+        const removeRequest = deferred<BuilderMutationResult>();
+        const clearRequest = deferred<BuilderMutationResult>();
+        const requests = [addRequest, reorderRequest, removeRequest, clearRequest];
+        const requestMutation = vi.fn(() => requests.shift()!.promise);
+
+        renderBuilder({ requestMutation });
+        await user.click(screen.getByRole("button", { name: "Review next round" }));
+        const dialog = screen.getByRole("dialog", { name: "Next round" });
+
+        const addQuestion = within(dialog).getByRole("button", { name: "Add question 2 to next round" });
+        await user.click(addQuestion);
+        expect(dialog).toHaveAttribute("aria-busy", "true");
+        expect(addQuestion).toHaveAttribute("aria-busy", "true");
+        expect(addQuestion).toHaveTextContent("Adding...");
+        expect(addQuestion.querySelector(".ui-button__spinner")).toBeInTheDocument();
+        expect(addQuestion.closest("li")).toHaveAttribute("aria-busy", "true");
+        expect(within(dialog).getByRole("status")).toHaveTextContent(
+            "Adding question 2 to your next round.",
+        );
+        expect(within(dialog).getByRole("button", { name: "Remove question 1 from next round" })).toBeDisabled();
+
+        addRequest.resolve({ ok: true, status: 200, outcome: "updated", builder: createBuilder(2, 4) });
+        await waitFor(() => expect(within(dialog).getByLabelText("2 questions queued")).toHaveTextContent("2"));
+
+        const moveQuestion = within(dialog).getByRole("button", { name: "Move question 2 up" });
+        await user.click(moveQuestion);
+        expect(moveQuestion).toHaveAttribute("aria-busy", "true");
+        expect(moveQuestion.querySelector(".ui-button__spinner")).toBeInTheDocument();
+        expect(within(dialog).getByRole("status")).toHaveTextContent("Moving question 2 up.");
+
+        reorderRequest.resolve({ ok: true, status: 200, outcome: "updated", builder: createBuilder(2, 5) });
+        await waitFor(() => expect(moveQuestion).not.toHaveAttribute("aria-busy"));
+
+        const removeQuestion = within(dialog).getByRole("button", { name: "Remove question 2 from next round" });
+        await user.click(removeQuestion);
+        expect(removeQuestion).toHaveAttribute("aria-busy", "true");
+        expect(removeQuestion.querySelector(".ui-button__spinner")).toBeInTheDocument();
+        expect(within(dialog).getByRole("status")).toHaveTextContent(
+            "Removing question 2 from your next round.",
+        );
+
+        removeRequest.resolve({ ok: true, status: 200, outcome: "updated", builder: createBuilder(1, 6) });
+        await waitFor(() => expect(within(dialog).queryByRole("button", {
+            name: "Remove question 2 from next round",
+        })).not.toBeInTheDocument());
+
+        await user.click(within(dialog).getByRole("button", { name: "Clear all" }));
+        await user.click(within(screen.getByRole("alertdialog", { name: "Clear this next round?" }))
+            .getByRole("button", { name: "Clear questions" }));
+        const clearing = within(dialog).getByRole("button", { name: "Clearing..." });
+        expect(clearing).toHaveAttribute("aria-busy", "true");
+        expect(clearing.querySelector(".ui-button__spinner")).toBeInTheDocument();
+        expect(within(dialog).getByRole("status")).toHaveTextContent(
+            "Clearing every question from your next round.",
+        );
+
+        clearRequest.resolve({ ok: true, status: 200, outcome: "updated", builder: createBuilder(0, 7) });
+        await waitFor(() => expect(within(dialog).getByRole("button", { name: "Start practice" })).toBeDisabled());
+        expect(requestMutation).toHaveBeenCalledTimes(4);
     });
 
     it("replaces stale state with the authoritative conflict response", async () => {
@@ -124,14 +171,14 @@ describe("CandidateNextRoundBuilderExperience", () => {
             })),
         });
 
-        await user.click(screen.getByRole("button", { name: "Next practice round, 1 queued" }));
-        await user.click(screen.getByRole("button", { name: "Remove question 1 from next practice round" }));
+        await user.click(screen.getByRole("button", { name: "Review next round" }));
+        await user.click(screen.getByRole("button", { name: "Remove question 1 from next round" }));
 
         expect(screen.getByRole("status")).toHaveTextContent(
             "This round changed somewhere else. I loaded the latest version.",
         );
-        expect(screen.getByRole("button", { name: "Next practice round" })).toBeInTheDocument();
-        expect(screen.getByText("Add questions from your Coach Plan to build this round.")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Review next round" })).not.toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Coach Plan" })).toBeInTheDocument();
     });
 
     it("navigates only after launch returns a durable ready destination", async () => {
@@ -147,7 +194,7 @@ describe("CandidateNextRoundBuilderExperience", () => {
             })),
         });
 
-        await user.click(screen.getByRole("button", { name: "Next practice round, 1 queued" }));
+        await user.click(screen.getByRole("button", { name: "Review next round" }));
         await user.click(screen.getByRole("button", { name: "Start practice" }));
 
         expect(navigate).toHaveBeenCalledWith("/candidate/practice/ready/intent-1");
@@ -167,12 +214,20 @@ describe("CandidateNextRoundBuilderExperience", () => {
         const navigate = vi.fn();
         renderBuilder({ requestLaunch, navigate });
 
-        await user.click(screen.getByRole("button", { name: "Next practice round, 1 queued" }));
+        await user.click(screen.getByRole("button", { name: "Review next round" }));
         const startPractice = screen.getByRole("button", { name: "Start practice" });
         fireEvent.click(startPractice);
         fireEvent.click(startPractice);
 
         expect(requestLaunch).toHaveBeenCalledOnce();
+        expect(screen.getByRole("dialog", { name: "Next round" })).toHaveAttribute("aria-busy", "true");
+        expect(startPractice).toBeDisabled();
+        expect(startPractice).toHaveAttribute("aria-busy", "true");
+        expect(startPractice).toHaveTextContent("Preparing practice...");
+        expect(startPractice.querySelector(".ui-button__spinner")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+        expect(screen.getByRole("button", { name: "Close Next round" })).toBeDisabled();
+        expect(screen.getByRole("status")).toHaveTextContent("Preparing your next round.");
         resolveLaunch({
             ok: true,
             status: 201,
@@ -180,6 +235,7 @@ describe("CandidateNextRoundBuilderExperience", () => {
             redirectTo: "/candidate/practice/ready/intent-1",
         });
         await waitFor(() => expect(navigate).toHaveBeenCalledWith("/candidate/practice/ready/intent-1"));
+        expect(startPractice).toHaveAttribute("aria-busy", "true");
     });
 
     it("disables additional choices at the durable round capacity", async () => {
@@ -187,9 +243,9 @@ describe("CandidateNextRoundBuilderExperience", () => {
         const atCapacity = { ...createBuilder(1, 3), capacity: 1 };
         renderBuilder({ initialBuilder: atCapacity });
 
-        await user.click(screen.getByRole("button", { name: "Next practice round, 1 queued" }));
+        await user.click(screen.getByRole("button", { name: "Review next round" }));
 
-        expect(screen.queryByRole("button", { name: "Add question 2 to next practice round" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Add question 2 to next round" })).not.toBeInTheDocument();
         expect(screen.queryByText("1 of 1")).not.toBeInTheDocument();
         expect(screen.getByText("Round is full.")).toBeInTheDocument();
     });
@@ -197,7 +253,7 @@ describe("CandidateNextRoundBuilderExperience", () => {
     it("dismisses the mobile sheet after a deliberate downward grabber drag", async () => {
         const user = userEvent.setup();
         renderBuilder({ initialBuilder: createBuilder(1, 3) });
-        const trigger = screen.getByRole("button", { name: "Next practice round, 1 queued" });
+        const trigger = screen.getByRole("button", { name: "Review next round" });
 
         await user.click(trigger);
         const grabber = screen.getByTestId("candidate-next-round-sheet-grabber");
@@ -205,10 +261,25 @@ describe("CandidateNextRoundBuilderExperience", () => {
         fireEvent.pointerMove(grabber, { pointerId: 1, pointerType: "touch", clientY: 120 });
         fireEvent.pointerUp(grabber, { pointerId: 1, pointerType: "touch", clientY: 120 });
 
-        expect(screen.queryByRole("dialog", { name: "Next practice round" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("dialog", { name: "Next round" })).not.toBeInTheDocument();
         await waitFor(() => expect(trigger).toHaveFocus());
     });
 });
+
+type BuilderMutationResult = {
+    ok: boolean;
+    status: number;
+    outcome: string;
+    builder: CandidateNextRoundBuilderModel;
+};
+
+function deferred<T>() {
+    let resolve!: (value: T) => void;
+    const promise = new Promise<T>((resolvePromise) => {
+        resolve = resolvePromise;
+    });
+    return { promise, resolve };
+}
 
 function renderBuilder({
     requestMutation = vi.fn(async () => ({ ok: true, status: 200 })),
@@ -228,8 +299,18 @@ function renderBuilder({
             requestLaunch={requestLaunch}
             navigate={navigate}
         >
-            <CandidateNextRoundBuilderTrigger />
+            <BuilderOpenButton />
+            <CandidateNextRoundReviewFooter />
         </CandidateNextRoundBuilderExperience>,
+    );
+}
+
+function BuilderOpenButton() {
+    const controller = useCandidateNextRoundBuilder();
+    return (
+        <button type="button" onClick={() => controller?.openBuilder()}>
+            Open next round
+        </button>
     );
 }
 

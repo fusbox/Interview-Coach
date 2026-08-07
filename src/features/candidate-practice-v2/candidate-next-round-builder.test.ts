@@ -107,6 +107,32 @@ describe("candidate next-round builder model", () => {
             },
         })).toBeNull();
     });
+
+    it("offers no builder inventory or stale queued draft while the canonical context is active", () => {
+        const sessions = createSessions();
+        sessions.push({
+            ...sessions[0],
+            candidatePracticeSessionId: "session-active",
+            status: "in_progress",
+            progress: { status: "live_question", currentQuestionIndex: 1 },
+            completionSnapshot: null,
+        });
+
+        expect(createCandidateNextRoundBuilderModel({
+            candidateProfileId: "candidate-1",
+            roleProfileId: "role-1",
+            coachPlan: createCoachPlan(),
+            practiceSessions: sessions,
+            draft: { ...createDraft(), items: [], itemCount: 0 },
+        })?.choices).toEqual([]);
+        expect(createCandidateNextRoundBuilderModel({
+            candidateProfileId: "candidate-1",
+            roleProfileId: "role-1",
+            coachPlan: createCoachPlan(),
+            practiceSessions: sessions,
+            draft: createDraft(),
+        })).toBeNull();
+    });
 });
 
 function createCoachPlan(): CandidateCoachPlanReference {

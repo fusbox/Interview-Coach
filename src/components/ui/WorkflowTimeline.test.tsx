@@ -12,7 +12,12 @@ it("renders an accessible ordered workflow with explicit step states", () => {
             <WorkflowTimelineStep number={2} state="active" title="Resume">
                 <section>Resume content</section>
             </WorkflowTimelineStep>
-            <WorkflowTimelineStep number={3} state="upcoming" title="Interview details">
+            <WorkflowTimelineStep
+                nodeClassName="on-color-glass"
+                number={3}
+                state="upcoming"
+                title="Interview details"
+            >
                 <section>Interview content</section>
             </WorkflowTimelineStep>
         </WorkflowTimeline>,
@@ -27,5 +32,8 @@ it("renders an accessible ordered workflow with explicit step states", () => {
     expect(container.querySelector('[data-workflow-step="3"]')).toHaveAttribute(
         "data-workflow-state",
         "upcoming",
+    );
+    expect(container.querySelector('[data-workflow-step="3"] .workflow-timeline__node')).toHaveClass(
+        "on-color-glass",
     );
 });

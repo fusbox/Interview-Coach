@@ -1,5 +1,4 @@
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { act } from "react";
 import { expect, it } from "vitest";
 
@@ -91,41 +90,45 @@ it("lets visitors step through prepare chapter stages", async () => {
     // Prepare stays inert until HIW docks; content is in the DOM but not exposed yet.
     expect(chapter.getByText("01", { selector: ".lab-chapter__index" })).toBeInTheDocument();
     expect(chapter.getByText(/^prepare$/i, { selector: ".lab-chapter__label" })).toBeInTheDocument();
-    expect(chapter.getByText(/what are you interviewing for/i)).toBeInTheDocument();
+    expect(chapter.getByAltText(/practice setup with role/i)).toBeInTheDocument();
     expect(
         chapter.getByText(/tell us what you’re interviewing for/i, { selector: ".lab-chapter__beat-title" }),
     ).toBeInTheDocument();
     expect(screen.getByText("How it works", { selector: ".lab-intro__hiw-title" })).toBeInTheDocument();
     expect(screen.getByText("How it works", { selector: ".lab-hiw-dock__title" })).toBeInTheDocument();
+    const chapterNavigation = screen.getByRole("navigation", { name: "How it works chapters", hidden: true });
+    expect(within(chapterNavigation).getByRole("link", { name: "Prepare", hidden: true })).toHaveAttribute("href", "#prepare");
+    expect(within(chapterNavigation).getByRole("link", { name: "Practice", hidden: true })).toHaveAttribute("href", "#practice");
+    expect(within(chapterNavigation).getByRole("link", { name: "Improve", hidden: true })).toHaveAttribute("href", "#improve");
+
+    const prepareSteps = prepare?.querySelector<HTMLElement>(".lab-chapter__meter");
+    expect(prepareSteps).not.toBeNull();
+    const setUpStep = within(prepareSteps as HTMLElement).getByText("Set up").closest("button");
+    const getReadyStep = within(prepareSteps as HTMLElement).getByText("Get ready").closest("button");
+    expect(setUpStep).toHaveAttribute("aria-current", "step");
+    await act(async () => {
+        getReadyStep?.click();
+    });
+    expect(getReadyStep).toHaveAttribute("aria-current", "step");
 
     await act(async () => {
         selectLabChapterBeat("prepare", 1);
     });
-    expect(await chapter.findByText(/your practice is ready/i)).toBeInTheDocument();
-    expect(chapter.getByText(/question plan/i)).toBeInTheDocument();
+    expect(await chapter.findByAltText(/pre-session landing/i)).toBeInTheDocument();
 });
 
-it("lets visitors open Session Mobile A coaching assists", async () => {
-    const user = userEvent.setup();
+it("uses current product captures throughout the practice chapter", async () => {
     render(<Home />);
 
-    expect(screen.getByRole("heading", { name: /resolved a conflict on your team/i })).toBeInTheDocument();
+    const practice = document.getElementById("practice");
+    expect(practice).not.toBeNull();
+    const chapter = within(practice as HTMLElement);
+    expect(chapter.getByAltText(/live interview practice/i)).toBeInTheDocument();
 
-    await user.click(screen.getByTitle("Hints"));
-    expect(screen.getByText(/use the star method/i)).toBeInTheDocument();
-    expect(screen.getByTitle("Hints")).toHaveAttribute("aria-pressed", "true");
-
-    await user.click(screen.getByTitle("Strong response framework"));
-    expect(screen.getByText(/canonical target structure/i)).toBeInTheDocument();
-    expect(screen.getByTitle("Strong response framework")).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByTitle("Hints")).toHaveAttribute("aria-pressed", "false");
-
-    await user.click(screen.getByLabelText(/close coaching drawer/i));
-    expect(screen.getByTitle("Hints")).toHaveAttribute("aria-pressed", "false");
-
-    await user.click(screen.getByTitle("Voice answer"));
-    expect(screen.getByText(/tap to record/i)).toBeInTheDocument();
-    expect(screen.getByTitle("Text answer")).toBeInTheDocument();
+    await act(async () => {
+        selectLabChapterBeat("practice", 1);
+    });
+    expect(await chapter.findByAltText(/post-answer coaching/i)).toBeInTheDocument();
 });
 
 it("renders the TalentArbor policy footer", () => {

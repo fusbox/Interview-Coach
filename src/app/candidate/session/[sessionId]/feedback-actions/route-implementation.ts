@@ -1,3 +1,5 @@
+import { after } from "next/server";
+
 import { resolveCandidateOwnedRequestIdentity } from "@/features/candidate-auth-v2/candidate-route-authorization";
 import { CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV } from "@/features/candidate-auth-v2/production-host-launch-runtime";
 import { createCandidatePracticeSessionRepository } from "@/features/candidate-session-v2/candidate-practice-session-repository";
@@ -10,10 +12,16 @@ import type {
     CandidateFeedbackInteractionStageId,
     CandidateFeedbackTransition,
 } from "@/features/candidate-session-v2/candidate-feedback-interaction";
+import { resolveCandidateNextUnansweredQuestionIndex } from "@/features/candidate-session-v2/candidate-session-question-resolution";
+import type { SessionRuntimeProgress } from "@/features/interview-session-v2/session-runtime-contract";
 import {
     createCandidateFeedbackInteraction,
     isCandidateFeedbackActionEventAllowed,
 } from "@/features/candidate-session-v2/candidate-feedback-interaction";
+import {
+    createDefaultCandidateSessionCompleteDependencies,
+} from "../complete/route-implementation";
+import type { CandidateCoachUpdateGenerationResult } from "@/features/candidate-dashboard-v2/candidate-coach-update-generation";
 
 type CandidateSessionIdentity = {
     candidateProfileId: string;
@@ -23,6 +31,7 @@ type CandidateFeedbackActionSession = {
     answerAnalysisSnapshots?: Record<string, CandidateAnswerAnalysisProviderResult>;
     answerSubmissions?: CandidateAnswerSubmissions;
     questionWordingSnapshot?: CandidateQuestionWordingResult | null;
+    progress?: SessionRuntimeProgress;
 };
 
 type CandidateFeedbackActionRepository = {
@@ -34,12 +43,20 @@ type CandidateFeedbackActionRepository = {
         candidatePracticeSessionId: string;
         candidateProfileId: string;
         feedbackActionEvent: CandidateFeedbackActionEvent;
+        nextProgress?: SessionRuntimeProgress;
     }) => Promise<Record<string, CandidateFeedbackActionEvent> | null>;
 };
 
 export type CandidateFeedbackActionRouteDependencies = {
     resolveCandidateSessionIdentity?: (request: Request) => Promise<CandidateSessionIdentity | null>;
     practiceSessionRepository?: CandidateFeedbackActionRepository;
+    ensureCoachUpdateArtifact?: (input: {
+        candidateProfileId: string;
+        sourceCandidatePracticeSessionId: string;
+        sourceQuestionKey: string;
+        settledAt: string;
+    }) => Promise<CandidateCoachUpdateGenerationResult>;
+    scheduleCoachUpdate?: (task: () => Promise<void>) => void;
 };
 
 const stageIds = new Set<CandidateFeedbackInteractionStageId>([
@@ -85,6 +102,8 @@ export async function handleCandidateFeedbackActionRequest({
     sessionId,
     resolveCandidateSessionIdentity,
     practiceSessionRepository,
+    ensureCoachUpdateArtifact,
+    scheduleCoachUpdate,
 }: CandidateFeedbackActionRouteDependencies & {
     request: Request;
     sessionId: string;
@@ -168,14 +187,40 @@ export async function handleCandidateFeedbackActionRequest({
         );
     }
 
+    const nextProgress = feedbackActionEvent.transition === "advance_to_next_question"
+        && session.questionWordingSnapshot
+        ? createSettledQuestionProgress({
+            session,
+            currentQuestionIndex: feedbackActionEvent.answer.questionIndex,
+        })
+        : null;
     const feedbackActionEvents = await practiceSessionRepository.saveFeedbackActionEvent({
         candidatePracticeSessionId: sessionId,
         candidateProfileId: identity.candidateProfileId,
         feedbackActionEvent,
+        ...(nextProgress ? { nextProgress } : {}),
     });
 
     if (!feedbackActionEvents) {
         return Response.json({ error: "Feedback action could not be saved." }, { status: 404 });
+    }
+
+    if (
+        ensureCoachUpdateArtifact
+        && scheduleCoachUpdate
+        && (
+            feedbackActionEvent.transition === "advance_to_next_question"
+            || feedbackActionEvent.transition === "finish_session"
+        )
+    ) {
+        scheduleCoachUpdate(async () => {
+            await ensureCoachUpdateArtifact({
+                candidateProfileId: identity.candidateProfileId,
+                sourceCandidatePracticeSessionId: sessionId,
+                sourceQuestionKey: feedbackActionEvent.answer.slotId,
+                settledAt: feedbackActionEvent.selectedAt,
+            }).catch(() => undefined);
+        });
     }
 
     return Response.json({
@@ -186,7 +231,7 @@ export async function handleCandidateFeedbackActionRequest({
 
 function createDefaultCandidateFeedbackActionDependencies(): Pick<
     CandidateFeedbackActionRouteDependencies,
-    "resolveCandidateSessionIdentity" | "practiceSessionRepository"
+    "resolveCandidateSessionIdentity" | "practiceSessionRepository" | "ensureCoachUpdateArtifact" | "scheduleCoachUpdate"
 > {
     const databaseUrl = process.env[CANDIDATE_HOST_LAUNCH_DATABASE_URL_ENV]?.trim();
     if (!databaseUrl) {
@@ -195,10 +240,34 @@ function createDefaultCandidateFeedbackActionDependencies(): Pick<
 
     const queryClient = createLazyPostgresQueryClient(databaseUrl);
 
+    const ensureCoachUpdateArtifact = createDefaultCandidateSessionCompleteDependencies().ensureCoachUpdateArtifact;
     return {
         resolveCandidateSessionIdentity: (request) =>
             resolveCandidateOwnedRequestIdentity(request, queryClient),
         practiceSessionRepository: createCandidatePracticeSessionRepository(queryClient),
+        ...(ensureCoachUpdateArtifact ? { ensureCoachUpdateArtifact } : {}),
+        scheduleCoachUpdate: (task) => after(task),
+    };
+}
+
+function createSettledQuestionProgress({
+    session,
+    currentQuestionIndex,
+}: {
+    session: CandidateFeedbackActionSession;
+    currentQuestionIndex: number;
+}): SessionRuntimeProgress | null {
+    if (!session.questionWordingSnapshot) return null;
+    const nextQuestionIndex = resolveCandidateNextUnansweredQuestionIndex({
+        questions: session.questionWordingSnapshot.questions,
+        answerSubmissions: session.answerSubmissions ?? {},
+        afterQuestionIndex: currentQuestionIndex,
+    });
+    if (nextQuestionIndex === null) return null;
+    return {
+        status: "live_question",
+        currentQuestionIndex: nextQuestionIndex,
+        ...(session.progress?.answerMode ? { answerMode: session.progress.answerMode } : {}),
     };
 }
 

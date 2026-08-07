@@ -61,6 +61,28 @@ describe("Surface", () => {
         );
         expect(surface).toHaveAttribute("data-interactive", "true");
     });
+
+    it("maps reviewed coaching to the semantic quiet-Coach surface", () => {
+        render(
+            <Surface as="button" prominence="coach-quiet">
+                Review feedback by question
+            </Surface>,
+        );
+
+        expect(screen.getByRole("button", {
+            name: "Review feedback by question",
+        })).toHaveClass("surface-coach-quiet");
+    });
+
+    it("maps Coach Plan to its opaque semantic blue surface", () => {
+        render(
+            <Surface as="section" prominence="plan" aria-label="Coach plan">
+                Plan progress
+            </Surface>,
+        );
+
+        expect(screen.getByRole("region", { name: "Coach plan" })).toHaveClass("surface-plan");
+    });
 });
 
 // @ts-expect-error Static surfaces do not accept click handlers.

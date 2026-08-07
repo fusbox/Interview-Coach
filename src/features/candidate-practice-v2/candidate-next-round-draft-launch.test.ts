@@ -135,6 +135,52 @@ describe("candidate next-round draft launch", () => {
         });
         expect(snapshotDraftToIntent).not.toHaveBeenCalled();
     });
+
+    it("blocks new and previously snapshotted ready rounds while the canonical context is active", async () => {
+        const activeSession = {
+            ...createSourceSession(),
+            candidatePracticeSessionId: "session-active",
+            status: "in_progress" as const,
+            progress: { status: "live_question" as const, currentQuestionIndex: 1 },
+            completionSnapshot: null,
+        };
+        const snapshotDraftToIntent = vi.fn();
+
+        await expect(launchCandidateNextRoundDraft({
+            candidateNextRoundDraftId: "draft-1",
+            candidateProfileId: "candidate-1",
+            roleProfileId: "role-1",
+            expectedVersion: 4,
+            practiceSessions: [createSourceSession(), activeSession],
+            draftRepository: { findDraft: vi.fn(async () => createDraft()) },
+            launchRepository: {
+                findIntentForDraftVersion: vi.fn(async () => null),
+                snapshotDraftToIntent,
+            },
+        })).resolves.toEqual({
+            status: "candidate_next_round_draft_not_launched",
+            reason: "invalid_items",
+            currentVersion: 4,
+        });
+
+        await expect(launchCandidateNextRoundDraft({
+            candidateNextRoundDraftId: "draft-1",
+            candidateProfileId: "candidate-1",
+            roleProfileId: "role-1",
+            expectedVersion: 4,
+            practiceSessions: [activeSession],
+            draftRepository: { findDraft: vi.fn() },
+            launchRepository: {
+                findIntentForDraftVersion: vi.fn(async () => createExistingIntent()),
+                snapshotDraftToIntent,
+            },
+        })).resolves.toEqual({
+            status: "candidate_next_round_draft_not_launched",
+            reason: "invalid_items",
+        });
+
+        expect(snapshotDraftToIntent).not.toHaveBeenCalled();
+    });
 });
 
 function createDraft(): CandidateNextRoundDraftRecord {

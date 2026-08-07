@@ -268,6 +268,24 @@ describe("candidate follow-up session creation", () => {
             now: new Date("2026-07-12T17:00:00.000Z"),
         })).toBeNull();
     });
+
+    it("does not create a follow-up session while the same prep context is still active", () => {
+        const sourceSession = createSourceSession({
+            candidatePracticeSessionId: "source-session-1",
+            answeredSlotIds: ["slot-1"],
+        });
+        const activeSession = createSourceSession({
+            candidatePracticeSessionId: "active-session-1",
+            status: "in_progress",
+        });
+
+        expect(createCandidateFollowUpSessionInputFromIntent({
+            candidateProfileId: "candidate-1",
+            intent: createPracticeIntentRecord({ itemKeys: ["slot-1"] }),
+            existingPracticeSessions: [sourceSession, activeSession],
+            now: new Date("2026-07-12T17:00:00.000Z"),
+        })).toBeNull();
+    });
 });
 
 function createPracticeIntentRecord({
@@ -351,11 +369,13 @@ function createPracticeIntentRecord({
 function createSourceSession({
     candidatePracticeSessionId,
     roleProfileId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    status = "completed",
     answeredSlotIds = [],
     followUpItems = [],
 }: {
     candidatePracticeSessionId: string;
     roleProfileId?: string | null;
+    status?: CandidatePracticeSessionRecord["status"];
     answeredSlotIds?: string[];
     followUpItems?: Array<{
         localSlotId: string;
@@ -415,7 +435,7 @@ function createSourceSession({
         candidateProfileId: "candidate-1",
         roleProfileId,
         candidateLaunchSessionId: null,
-        status: "completed",
+        status,
         setupSnapshot: {
             targetRole: "Material Handler I",
             jobDescription: "Move materials safely.",
@@ -471,7 +491,7 @@ function createSourceSession({
         },
         questionWordingStatus: "worded",
         progress: {
-            status: "completed",
+            status: status === "completed" ? "completed" : "live_question",
             currentQuestionIndex: 0,
         },
         answerDrafts: {},

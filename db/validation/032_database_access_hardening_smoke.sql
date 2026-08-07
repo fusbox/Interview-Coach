@@ -184,6 +184,7 @@ begin
       on namespace.oid = relation.relnamespace
     where namespace.nspname = 'public'
       and relation.relkind in ('r', 'p')
+      and relation.relname <> 'candidate_engagement_slices'
       and not (
           has_table_privilege('interview_coach_runtime', relation.oid, 'select')
           and has_table_privilege('interview_coach_runtime', relation.oid, 'insert')
@@ -193,6 +194,16 @@ begin
 
     if v_missing_count <> 0 then
         raise exception '% public application tables lack runtime DML grants', v_missing_count;
+    end if;
+
+    if to_regclass('public.candidate_engagement_slices') is not null
+       and (
+           not has_table_privilege('interview_coach_runtime', 'public.candidate_engagement_slices', 'select')
+           or not has_table_privilege('interview_coach_runtime', 'public.candidate_engagement_slices', 'insert')
+           or has_table_privilege('interview_coach_runtime', 'public.candidate_engagement_slices', 'update')
+           or has_table_privilege('interview_coach_runtime', 'public.candidate_engagement_slices', 'delete')
+       ) then
+        raise exception 'candidate engagement ledger does not preserve append-only runtime access';
     end if;
 
     for v_role in

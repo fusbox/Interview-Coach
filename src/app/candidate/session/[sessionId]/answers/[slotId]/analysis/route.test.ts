@@ -989,11 +989,15 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
         expect(saveAnswerAnalysisSnapshot.mock.calls[0][0].analysisSnapshot.evidenceFirst).not.toHaveProperty("feedbackPlan");
     });
 
-    it("restores accepted coaching when no provider runtime is currently configured", async () => {
+    it("restores compatible historical coaching when no provider runtime is currently configured", async () => {
         const providerRequest = createProviderRequest();
         const acceptedRun = await runFixtureEvidenceFirstEvaluator(providerRequest, {
             evaluationRunId: "run-completed-without-runtime",
         });
+        const storedAcceptedRun = JSON.parse(JSON.stringify(acceptedRun)) as Record<string, unknown> & {
+            profile: { promptBundleVersion: string };
+        };
+        storedAcceptedRun.profile.promptBundleVersion = "candidate_evidence_first_prompts_v14";
         const saveAnswerAnalysisSnapshot = vi.fn(async (input) => ({
             "slot-1": input.analysisSnapshot,
         }));
@@ -1016,7 +1020,7 @@ describe("/candidate/session/[sessionId]/answers/[slotId]/analysis route", () =>
                     requestedAt: acceptedRun.requestedAt,
                     claimExpiresAt: "2026-07-09T20:03:00.000Z",
                     lifecycleState: "completed",
-                    result: acceptedRun,
+                    result: storedAcceptedRun,
                     validation: { disposition: "accepted", candidateSafeProjection: true },
                     completedAt: acceptedRun.completedAt,
                 })]),
