@@ -113,6 +113,70 @@ export function createCandidateCoachUpdateDetail(
     };
 }
 
+export function createCandidateCoachUpdateDetailFromArtifacts({
+    artifacts,
+    sourceSession,
+    practiceSessions,
+}: {
+    artifacts: CandidateCoachUpdateArtifactRecord[];
+    sourceSession: CandidatePracticeSessionRecord | null;
+    practiceSessions: CandidatePracticeSessionRecord[];
+}): CandidateCoachUpdateDetail | null {
+    const details = artifacts.flatMap((artifact) => {
+        const detail = createCandidateCoachUpdateDetail(artifact, sourceSession, practiceSessions);
+        return detail ? [detail] : [];
+    });
+    if (details.length === 0) return null;
+
+    const practiceOrderByQuestionKey = new Map(
+        Object.entries(sourceSession?.feedbackActionEvents ?? {})
+            .sort(([, left], [, right]) => (
+                left.selectedAt.localeCompare(right.selectedAt)
+            ))
+            .map(([questionKey], index) => [questionKey, index]),
+    );
+
+    const latest = [...details].sort((left, right) => (
+        right.completedAt.localeCompare(left.completedAt)
+        || right.presentationKey.localeCompare(left.presentationKey)
+    ))[0];
+    const latestItemByCanonicalQuestion = new Map<string, {
+        detail: CandidateCoachUpdateDetail;
+        item: CandidateCoachUpdateQuestionDetail;
+    }>();
+    for (const detail of details) {
+        for (const item of detail.items) {
+            const key = `${item.canonicalQuestion.candidatePracticeSessionId}:${item.canonicalQuestion.questionKey}`;
+            const current = latestItemByCanonicalQuestion.get(key);
+            if (
+                !current
+                || detail.completedAt.localeCompare(current.detail.completedAt) > 0
+                || (
+                    detail.completedAt === current.detail.completedAt
+                    && detail.presentationKey.localeCompare(current.detail.presentationKey) > 0
+                )
+            ) {
+                latestItemByCanonicalQuestion.set(key, { detail, item });
+            }
+        }
+    }
+    const items = Array.from(latestItemByCanonicalQuestion.values())
+        .map(({ item }) => item)
+        .sort((left, right) => (
+            (practiceOrderByQuestionKey.get(left.sourceOccurrence.questionKey) ?? Number.MAX_SAFE_INTEGER)
+                - (practiceOrderByQuestionKey.get(right.sourceOccurrence.questionKey) ?? Number.MAX_SAFE_INTEGER)
+            || left.questionNumber - right.questionNumber
+            || left.sourceOccurrence.questionKey.localeCompare(right.sourceOccurrence.questionKey)
+        ));
+
+    return {
+        ...latest,
+        answeredCount: items.length,
+        questionCount: items.length,
+        items,
+    };
+}
+
 function toQuestionDetail({
     question,
     candidatePracticeSessionId,

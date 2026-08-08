@@ -130,6 +130,7 @@ export function CandidatePlannedSessionExperience({
     const [isPacedExitPending, setIsPacedExitPending] = useState(false);
     const [isPausingSession, setIsPausingSession] = useState(false);
     const [isSessionPaused, setIsSessionPaused] = useState(false);
+    const [practiceVisitId] = useState(() => createCandidatePracticeVisitId());
     const [answerMode, setAnswerMode] = useState<"text" | "voice">(
         resolveAvailableAnswerMode(initialSession?.progress?.answerMode, voiceAnswerEnabled),
     );
@@ -567,6 +568,7 @@ export function CandidatePlannedSessionExperience({
             <CandidateStagedFeedback
                 key={`${activeQuestion.slotId}:${activeAnalysisSnapshot.answer.answerAttemptId ?? activeAnalysisSnapshot.analyzedAt}`}
                 interaction={feedbackInteraction!}
+                practiceVisitId={practiceVisitId}
                 question={{
                     number: activeQuestionIndex + 1,
                     count: runtimeFacts.questionCount,
@@ -966,6 +968,13 @@ function resolveAvailableAnswerMode(
 ): "text" | "voice" {
     if (!voiceAnswerEnabled) return "text";
     return persistedMode === "text" ? "text" : "voice";
+}
+
+function createCandidatePracticeVisitId() {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+    }
+    return `visit-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
 function resolveRecoveredCandidateProgress(

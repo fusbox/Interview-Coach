@@ -20,9 +20,13 @@ import {
     type CandidateCoachPlanReference,
 } from "./candidate-coach-plan-reference";
 import type { CandidateCoachUpdateArtifactRecord } from "./candidate-coach-update-artifact";
+import {
+    createCandidateAnswerReviewItems,
+    type CandidateAnswerReviewItem,
+} from "./candidate-answer-review-projection";
 import { isCandidateCoachUpdateRequestStale } from "./candidate-coach-update-lifecycle";
 import {
-    createCandidateCoachUpdateDetail,
+    createCandidateCoachUpdateDetailFromArtifacts,
     createCandidateFocusedPracticeHref,
     type CandidateCoachUpdateDetail,
 } from "./candidate-coach-update-detail";
@@ -61,6 +65,7 @@ export type CandidateDashboardV2ReadModel = {
     latestCoachUpdate: CandidateDashboardCoachUpdate | null;
     coachUpdateState: CandidateDashboardCoachUpdateState;
     coachUpdateDetail: CandidateCoachUpdateDetail | null;
+    answerReviews?: CandidateAnswerReviewItem[];
     coachingLoop: CandidateDashboardCoachingLoop;
     postRoundReviews: CandidatePostRoundReview[];
     practiceNext: CandidatePracticeNext;
@@ -253,14 +258,20 @@ export function createCandidateDashboardV2ReadModel({
             session.candidatePracticeSessionId === latestCoachUpdateArtifact.sourceCandidatePracticeSessionId
         )) ?? null
         : null;
+    const currentCoachUpdateArtifacts = selectCurrentCoachUpdateArtifacts({
+        artifacts: coachUpdateArtifacts,
+        latestArtifact: latestCoachUpdateArtifact,
+        sourceSession: latestCoachUpdateSourceSession,
+    });
+    const coachUpdateDetail = createCandidateCoachUpdateDetailFromArtifacts({
+        artifacts: currentCoachUpdateArtifacts,
+        sourceSession: latestCoachUpdateSourceSession,
+        practiceSessions: scopedCandidateSessions,
+    });
     const latestCoachUpdate = createDashboardCoachUpdateFromArtifact(
         latestCoachUpdateArtifact,
         latestCoachUpdateSourceSession,
-    );
-    const coachUpdateDetail = createCandidateCoachUpdateDetail(
-        latestCoachUpdateArtifact,
-        latestCoachUpdateSourceSession,
-        scopedCandidateSessions,
+        coachUpdateDetail,
     );
     const practicePlanBaseline = practicePlanBaselines.find((baseline) => (
         baseline.candidateProfileId === candidateProfileId
@@ -285,6 +296,15 @@ export function createCandidateDashboardV2ReadModel({
             acceptedRuns: acceptedEvaluationRuns,
         })
         : null;
+    const answerReviews = answerAttempts && acceptedEvaluationRuns
+        ? createCandidateAnswerReviewItems({
+            candidateProfileId,
+            practiceSessions: baselineAwareScopedCandidateSessions,
+            coachPlan,
+            answerAttempts,
+            acceptedRuns: acceptedEvaluationRuns,
+        })
+        : [];
     const practiceDirection = createPracticeDirection({
         activeSession,
         latestCompletedRound: completedRounds[0] ?? null,
@@ -327,6 +347,7 @@ export function createCandidateDashboardV2ReadModel({
             now,
         }),
         coachUpdateDetail,
+        answerReviews,
         coachingLoop: createCoachingLoop({
             latestCoachUpdate,
             practiceNext,
@@ -364,6 +385,55 @@ function selectLatestCoachUpdateArtifact({
                 || (right.completedAt ?? right.requestedAt).localeCompare(left.completedAt ?? left.requestedAt)
                 || right.updatedAt.localeCompare(left.updatedAt);
         })[0] ?? null;
+}
+
+function selectCurrentCoachUpdateArtifacts({
+    artifacts,
+    latestArtifact,
+    sourceSession,
+}: {
+    artifacts: CandidateCoachUpdateArtifactRecord[];
+    latestArtifact: CandidateCoachUpdateArtifactRecord | null;
+    sourceSession: CandidatePracticeSessionRecord | null;
+}) {
+    if (!latestArtifact || !sourceSession || !latestArtifact.sourceQuestionKey) {
+        return latestArtifact ? [latestArtifact] : [];
+    }
+
+    const sourceQuestionVisitId = sourceSession.feedbackActionEvents[
+        latestArtifact.sourceQuestionKey
+    ]?.practiceVisitId;
+    const sameSessionQuestionArtifacts = artifacts.filter((artifact) => (
+        artifact.candidateProfileId === latestArtifact.candidateProfileId
+        && artifact.roleProfileId === latestArtifact.roleProfileId
+        && artifact.sourceCandidatePracticeSessionId === latestArtifact.sourceCandidatePracticeSessionId
+        && Boolean(artifact.sourceQuestionKey)
+    ));
+
+    if (sourceQuestionVisitId) {
+        return sameSessionQuestionArtifacts.filter((artifact) => (
+            artifact.sourceQuestionKey
+            && sourceSession.feedbackActionEvents[artifact.sourceQuestionKey]?.practiceVisitId
+                === sourceQuestionVisitId
+        ));
+    }
+
+    const paceSize = sourceSession.setupSnapshot.paceSize;
+    if (
+        sourceSession.status !== "completed"
+        && typeof paceSize === "number"
+        && Number.isInteger(paceSize)
+        && paceSize > 1
+    ) {
+        return [...sameSessionQuestionArtifacts]
+            .sort((left, right) => (
+                (right.completedAt ?? right.requestedAt).localeCompare(left.completedAt ?? left.requestedAt)
+                || right.updatedAt.localeCompare(left.updatedAt)
+            ))
+            .slice(0, paceSize);
+    }
+
+    return [latestArtifact];
 }
 
 function createCoachUpdateState({
@@ -456,6 +526,7 @@ function normalizeCandidateIdentityText(value: string | null | undefined) {
 function createDashboardCoachUpdateFromArtifact(
     artifact: CandidateCoachUpdateArtifactRecord | null,
     sourceSession: CandidatePracticeSessionRecord | null,
+    detail: CandidateCoachUpdateDetail | null,
 ): CandidateDashboardCoachUpdate | null {
     const content = artifact?.candidateSafeContent;
     if (!artifact || !content || !artifact.completedAt || !sourceSession) return null;
@@ -467,7 +538,7 @@ function createDashboardCoachUpdateFromArtifact(
         body: content.summary,
         href: "#coach-update-detail",
         completedAt: artifact.completedAt,
-        answeredCount: content.questions.length,
+        answeredCount: detail?.answeredCount ?? content.questions.length,
         questionCount: sourceSession.questionWordingSnapshot?.questions.length
             ?? sourceSession.questionPlanSnapshot.questionCount,
         ...(firstQuestion ? {

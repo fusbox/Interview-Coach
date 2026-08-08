@@ -380,6 +380,7 @@ function createDefaultCandidateDashboardPageDependencies(
                             technicalAccuracy: accepted.accepted.extraction.technicalAccuracy,
                         },
                         criteria: accepted.accepted.criteria,
+                        acceptedRun: accepted,
                     }];
                 }) ?? null,
                 selectedRoleProfileId,

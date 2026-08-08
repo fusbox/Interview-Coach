@@ -7,6 +7,7 @@ import type {
     CriterionAppraisal,
     EvidenceExtractionOutput,
 } from "@/features/evaluation-v2/evidence-first-evaluator-contract";
+import type { CompatiblePersistedAcceptedEvidenceFirstEvaluatorRun } from "@/features/evaluation-v2/evidence-first-evaluator-runtime";
 import {
     compareQuestionPreparednessBands,
     deriveQuestionPreparedness,
@@ -22,6 +23,7 @@ export type CandidateQuestionPreparednessAcceptedRun = {
     completedAt: string;
     extraction: Pick<EvidenceExtractionOutput, "answerUsability" | "technicalAccuracy">;
     criteria: CriterionAppraisal[];
+    acceptedRun?: CompatiblePersistedAcceptedEvidenceFirstEvaluatorRun;
 };
 
 export type CandidateQuestionPreparednessProgress = {

@@ -305,6 +305,9 @@ function parseFeedbackActionEvent(value: unknown): CandidateFeedbackActionEvent 
     }
 
     const answer = parseAnswerReference(body.answer);
+    const practiceVisitId = typeof body.practiceVisitId === "undefined"
+        ? undefined
+        : readPracticeVisitId(body.practiceVisitId) ?? undefined;
     const stageId = readStageId(body.stageId);
     const actionKind = readActionKind(body.actionKind);
     const transition = readTransition(body.transition);
@@ -319,9 +322,13 @@ function parseFeedbackActionEvent(value: unknown): CandidateFeedbackActionEvent 
     if (typeof body.targetStageId !== "undefined" && !targetStageId) {
         return null;
     }
+    if (typeof body.practiceVisitId !== "undefined" && !practiceVisitId) {
+        return null;
+    }
 
     return {
         status: "feedback_action_selected",
+        ...(practiceVisitId ? { practiceVisitId } : {}),
         answer,
         stageId,
         actionKind,
@@ -329,6 +336,12 @@ function parseFeedbackActionEvent(value: unknown): CandidateFeedbackActionEvent 
         targetStageId,
         selectedAt,
     };
+}
+
+function readPracticeVisitId(value: unknown) {
+    return typeof value === "string" && /^[a-zA-Z0-9_-]{8,128}$/.test(value)
+        ? value
+        : null;
 }
 
 function parseAnswerReference(value: unknown): CandidateFeedbackActionEvent["answer"] | null {

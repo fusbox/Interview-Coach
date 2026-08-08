@@ -1,13 +1,13 @@
 "use client";
 
-import type { CandidateCoachUpdateQuestionDetail } from "./candidate-coach-update-detail";
+import type { CandidateAnswerReviewItem } from "./candidate-answer-review-projection";
 import { CandidateTranscriptCanvas } from "./CandidateTranscriptCanvas";
 
 export function CandidateAnswerReview({
     item,
     isCurrent,
 }: {
-    item: CandidateCoachUpdateQuestionDetail;
+    item: CandidateAnswerReviewItem;
     isCurrent: boolean;
 }) {
     const transcriptProjection = item.transcriptCanvas

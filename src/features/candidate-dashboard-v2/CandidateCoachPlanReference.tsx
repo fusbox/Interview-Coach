@@ -24,7 +24,7 @@ import type {
     CandidateCoachPlanQuestionReference,
     CandidateCoachPlanReference,
 } from "./candidate-coach-plan-reference";
-import type { CandidateCoachUpdateQuestionDetail } from "./candidate-coach-update-detail";
+import type { CandidateAnswerReviewItem } from "./candidate-answer-review-projection";
 import type {
     CandidateQuestionPreparednessItem,
     CandidateQuestionPreparednessProgress,
@@ -68,7 +68,7 @@ export function CandidateCoachPlanReferenceDialog({
     initialPlanAnsweredQuestionKeys = [],
     onClose,
 }: {
-    answerReviews?: CandidateCoachUpdateQuestionDetail[];
+    answerReviews?: CandidateAnswerReviewItem[];
     plan: CandidateCoachPlanReference;
     preparedness?: CandidateQuestionPreparednessProgress | null;
     initialPlanIncomplete?: boolean;
@@ -311,7 +311,7 @@ function QuestionDetail({
     initialPlanIncomplete,
     initialPlanQuestionAnswered,
 }: {
-    answerReview: CandidateCoachUpdateQuestionDetail | null;
+    answerReview: CandidateAnswerReviewItem | null;
     isRevealed: boolean;
     onReveal: () => void;
     plan: CandidateCoachPlanReference;

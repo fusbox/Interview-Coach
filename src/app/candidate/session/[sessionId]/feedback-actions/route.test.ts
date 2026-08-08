@@ -21,6 +21,7 @@ describe("/candidate/session/[sessionId]/feedback-actions route", () => {
     it("persists a selected feedback action after candidate-owned analysis exists", async () => {
         const feedbackActionEvent = {
             status: "feedback_action_selected" as const,
+            practiceVisitId: "visit-2026-07-10-a",
             answer: {
                 slotId: "slot-1",
                 questionIndex: 0,

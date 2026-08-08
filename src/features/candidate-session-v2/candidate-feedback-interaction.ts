@@ -53,6 +53,7 @@ export type CandidateFeedbackInteraction = {
 
 export type CandidateFeedbackActionEvent = {
     status: "feedback_action_selected";
+    practiceVisitId?: string;
     answer: CandidateAnswerAnalysisProviderResult["answer"];
     stageId: CandidateFeedbackInteractionStageId;
     actionKind: CandidateFeedbackActionKind;
@@ -106,17 +107,20 @@ export function createCandidateFeedbackInteraction({
 
 export function createCandidateFeedbackActionEvent({
     interaction,
+    practiceVisitId,
     stageId,
     action,
     selectedAt,
 }: {
     interaction: CandidateFeedbackInteraction;
+    practiceVisitId?: string;
     stageId: CandidateFeedbackInteractionStageId;
     action: CandidateFeedbackAction;
     selectedAt: string;
 }): CandidateFeedbackActionEvent {
     return {
         status: "feedback_action_selected",
+        ...(practiceVisitId ? { practiceVisitId } : {}),
         answer: interaction.answer,
         stageId,
         actionKind: action.kind,

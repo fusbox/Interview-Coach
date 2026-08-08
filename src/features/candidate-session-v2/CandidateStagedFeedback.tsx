@@ -18,6 +18,7 @@ import {
 
 type CandidateStagedFeedbackProps = {
     interaction: CandidateFeedbackInteraction;
+    practiceVisitId?: string;
     question: {
         number: number;
         count: number;
@@ -36,6 +37,7 @@ type CandidateStagedFeedbackProps = {
 
 export function CandidateStagedFeedback({
     interaction,
+    practiceVisitId,
     question,
     answerText,
     savedActionEvent = null,
@@ -305,6 +307,7 @@ export function CandidateStagedFeedback({
         setActionError(null);
         const event = createCandidateFeedbackActionEvent({
             interaction,
+            practiceVisitId,
             stageId: activeStage.id,
             action,
             selectedAt: new Date().toISOString(),

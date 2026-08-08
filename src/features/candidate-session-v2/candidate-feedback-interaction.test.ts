@@ -342,11 +342,13 @@ describe("candidate feedback interaction contract", () => {
         expect(retryAction).toBeDefined();
         expect(createCandidateFeedbackActionEvent({
             interaction,
+            practiceVisitId: "visit-2026-07-10-a",
             stageId: finalStage!.id,
             action: retryAction!,
             selectedAt: "2026-07-10T17:21:00.000Z",
         })).toEqual({
             status: "feedback_action_selected",
+            practiceVisitId: "visit-2026-07-10-a",
             answer: {
                 slotId: "slot-1",
                 questionIndex: 0,

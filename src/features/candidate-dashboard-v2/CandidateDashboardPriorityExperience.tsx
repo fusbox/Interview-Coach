@@ -120,6 +120,7 @@ export function CandidateDashboardPriorityExperience({
 
             {isCoachPlanOpen && dashboard.coachPlan ? (
                 <CandidateCoachPlanReferenceDialog
+                    answerReviews={dashboard.answerReviews}
                     plan={dashboard.coachPlan}
                     initialPlanIncomplete={Boolean(dashboard.activeRound)}
                     initialPlanAnsweredQuestionKeys={dashboard.activeRound?.answeredQuestionKeys}

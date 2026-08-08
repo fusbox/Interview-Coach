@@ -413,6 +413,56 @@ describe("candidate dashboard V2 read model", () => {
         });
     });
 
+    it("groups independently generated question checkpoints from one practice visit into one Coach Update", () => {
+        const roleProfileId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+        const session = createThreeQuestionCompletedSession();
+        session.roleProfileId = roleProfileId;
+        session.status = "in_progress";
+        session.completionSnapshot = null;
+        session.setupSnapshot = {
+            ...session.setupSnapshot,
+            paceSize: 3,
+        };
+        const practiceOrder = [2, 1, 3];
+        session.feedbackActionEvents = Object.fromEntries(practiceOrder.map((questionNumber, index) => [
+            `slot-${questionNumber}`,
+            {
+                status: "feedback_action_selected" as const,
+                practiceVisitId: "visit-2026-07-11-a",
+                answer: {
+                    slotId: `slot-${questionNumber}`,
+                    questionIndex: questionNumber - 1,
+                },
+                stageId: "next_step" as const,
+                actionKind: "continue_to_next_question" as const,
+                transition: "advance_to_next_question" as const,
+                selectedAt: `2026-07-11T12:0${index + 1}:00.000Z`,
+            },
+        ]));
+
+        const model = createCandidateDashboardV2ReadModel({
+            candidateProfileId: "candidate-1",
+            selectedRoleProfileId: roleProfileId,
+            practiceSessions: [session],
+            coachUpdateArtifacts: [1, 2, 3].map((questionNumber) => createCoachUpdateArtifact({
+                roleProfileId,
+                sourceSessionId: session.candidatePracticeSessionId,
+                artifactId: `artifact-${questionNumber}`,
+                questionKey: `slot-${questionNumber}`,
+                questionNumber,
+                completedAt: `2026-07-11T12:0${questionNumber}:02.000Z`,
+            })),
+        });
+
+        expect(model.coachUpdateState).toMatchObject({
+            status: "candidate_coach_update_ready",
+            presentationKey: "artifact-3",
+            answeredCount: 3,
+        });
+        expect(model.coachUpdateDetail?.items.map((item) => item.questionNumber)).toEqual(practiceOrder);
+        expect(model.latestCoachUpdate?.answeredCount).toBe(3);
+    });
+
     it("shows the newest requested Coach Update attempt as pending without falling back to older prose", () => {
         const roleProfileId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
         const session = createCompletedSession({
@@ -1149,21 +1199,28 @@ function createCoachUpdateArtifact({
     artifactId = "artifact-1",
     generationAttempt = 1,
     lifecycleState = "completed",
+    questionKey = null,
+    questionNumber = 1,
+    completedAt = "2026-07-11T12:00:02.000Z",
 }: {
     roleProfileId: string;
     sourceSessionId: string;
     artifactId?: string;
     generationAttempt?: number;
     lifecycleState?: CandidateCoachUpdateArtifactRecord["lifecycleState"];
+    questionKey?: string | null;
+    questionNumber?: number;
+    completedAt?: string;
 }): CandidateCoachUpdateArtifactRecord {
     const completedArtifact: CandidateCoachUpdateArtifactRecord = {
         candidateCoachUpdateArtifactId: artifactId,
         candidateProfileId: "candidate-1",
         roleProfileId,
         sourceCandidatePracticeSessionId: sourceSessionId,
+        ...(questionKey ? { sourceQuestionKey: questionKey } : {}),
         sourceCompletionFingerprint: "completion-1",
-        sourceAnswerAttemptIds: ["attempt-1"],
-        acceptedEvaluationRunIds: ["run-1"],
+        sourceAnswerAttemptIds: [`attempt-${questionNumber}`],
+        acceptedEvaluationRunIds: [`run-${questionNumber}`],
         synthesisInputFingerprint: "input-1",
         provider: "fixture",
         modelName: "fixture-v1",
@@ -1180,15 +1237,15 @@ function createCoachUpdateArtifact({
             summary: "I reviewed your practiced answer.",
             primaryFocus: "Add one concrete result.",
             questions: [{
-                questionKey: "slot-1",
-                questionNumber: 1,
+                questionKey: questionKey ?? "slot-1",
+                questionNumber,
                 category: "Screening",
                 questionText: "What interests you about this role?",
                 answer: {
-                    candidateAnswerAttemptId: "attempt-1",
+                    candidateAnswerAttemptId: `attempt-${questionNumber}`,
                     mode: "text",
                     text: "I like keeping materials organized.",
-                    submittedAt: "2026-07-11T12:01:00.000Z",
+                    submittedAt: `2026-07-11T12:0${questionNumber}:00.000Z`,
                 },
                 coaching: {
                     acknowledgement: "You gave me a direct starting point.",
@@ -1202,7 +1259,7 @@ function createCoachUpdateArtifact({
                 },
                 source: {
                     candidatePracticeSessionId: sourceSessionId,
-                    questionKey: "slot-1",
+                    questionKey: questionKey ?? "slot-1",
                 },
                 transcriptCanvas: null,
             }],
@@ -1210,9 +1267,9 @@ function createCoachUpdateArtifact({
         validation: { disposition: "accepted" },
         errorCode: null,
         requestedAt: "2026-07-11T12:00:01.000Z",
-        completedAt: "2026-07-11T12:00:02.000Z",
+        completedAt,
         createdAt: "2026-07-11T12:00:01.000Z",
-        updatedAt: "2026-07-11T12:00:02.000Z",
+        updatedAt: completedAt,
     };
 
     if (lifecycleState === "requested") {

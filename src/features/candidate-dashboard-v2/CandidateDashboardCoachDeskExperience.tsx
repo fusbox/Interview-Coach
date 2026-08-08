@@ -291,7 +291,7 @@ export function CandidateDashboardCoachDeskExperience({
 
             {isCoachPlanOpen && dashboard.coachPlan ? (
                 <CandidateCoachPlanReferenceDialog
-                    answerReviews={dashboard.coachUpdateDetail?.items}
+                    answerReviews={dashboard.answerReviews}
                     plan={dashboard.coachPlan}
                     preparedness={dashboard.questionPreparedness}
                     initialPlanIncomplete={Boolean(dashboard.activeRound)}

@@ -44,6 +44,7 @@ The candidate may leave the canonical session after a bounded amount of new work
 - Direct first-pass practice from Coach Plan or Coach Update targets an unanswered canonical question in the same session and returns after that question is settled.
 - A paced exit does not complete the session, create a follow-up intent, copy question wording, or reset the canonical cursor.
 - A paced exit claims navigation once, presents the dedicated dashboard-return transition before document navigation, and describes the visit as saved/resumable rather than complete.
+- Every terminal feedback action carries one opaque practice-visit id. Question-settled Coach Update artifacts remain independently replayable, while the dashboard groups artifacts sharing that visit id into one ordered Coach Update carousel. The compatibility fallback may group the latest setup-pace-sized artifact set for pre-visit-id development rows; it is not new-write authority.
 - The resolver uses immutable canonical order after the requested focus, wraps once, and skips every question with a durable submitted answer. Array position, dashboard display order, and feedback-carousel order are not completion authority.
 
 ## Completion Meaning
@@ -88,3 +89,5 @@ Before initial-plan completion, canonical unanswered questions never enter the d
 ## Coach Update Checkpoint
 
 Coach Update production is question-settled, not session-terminal. A question becomes eligible after its latest answer attempt is durably submitted, its accepted coaching evaluation is persisted, its terminal feedback action is saved, and the canonical cursor can advance. Generation failure must not block that settled transition. The resulting immutable update item is keyed by the exact answer attempt and accepted evaluator run, while the source session and canonical plan-question identity remain provenance. Replays are idempotent; later attempts create new items without overwriting history.
+
+The closed dashboard presents the latest practice visit as one Coach Update even though each settled question is generated independently. The opened Coach Plan does not borrow that current carousel as its evidence source. It resolves the latest compatible accepted answer and evaluator run for every practiced canonical question across the complete selected prep context, so reviewing one current update never hides earlier practiced-question evidence.
