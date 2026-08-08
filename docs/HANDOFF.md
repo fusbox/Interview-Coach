@@ -1,7 +1,7 @@
 # Interview Coach V2 Handoff
 
 Status: Active resumption contract
-Last updated: 2026-08-06
+Last updated: 2026-08-07
 Current branch: `feature/candidate-v2-rebuild`
 Azure PR target: `dev`
 
@@ -24,6 +24,8 @@ The 2026-08-05 candidate-engagement slice adapts the accepted legacy Tier 2 post
 ### Demo Deployment Packaging
 
 The completed rebuild milestone is packaged on `feature/candidate-v2-rebuild`, excluding the separately staged discovery and validation-fixture lanes, as the source of the company draft PR into `dev`. The company Azure `dev` branch is now the shared Interview Coach PR target. After this transition, new Interview Coach branches synchronize from the latest `dev` and return through reviewed PRs; they do not merge directly into Himanshu's parallel `feature/TA-integration` workstream or assume that workstream is ready for its downstream staging promotion. `release/njcareers` remains a bounded demo deployment target rather than evidence of production-release approval; the production gates below remain unchanged.
+
+The 2026-08-07 branch boundary is accepted for a reviewed Azure `dev` PR and staging evaluation. It includes the canonical pacing/question-checkpoint work, independent per-question answer review, candidate engagement reporting with production collection pinned off, the responsive Coach Desk and opened-surface maturation, recruiter/login parity, and the final Coach Plan reference polish. Before deploying this branch to a company-managed environment, apply migrations `052_candidate_engagement_reporting.sql` and `053_candidate_canonical_pacing_and_question_updates.sql` in order, run the target-aware environment preflight, keep `CANDIDATE_ENGAGEMENT_REPORTING_ENABLED=false`, and leave the brand selector unset for the TalentArbor default unless an explicit demo override is approved. This is a staging candidate, not production-release approval; credentialed V15/V16 calibration, physical-device microphone review, company database/runtime-role cutover evidence, and the remaining security/accessibility gates stay open.
 
 Read in this order:
 

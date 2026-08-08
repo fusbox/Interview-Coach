@@ -3,6 +3,7 @@
 import {
     ArrowRight,
     Check,
+    ChevronDown,
     Eye,
 } from "lucide-react";
 import {
@@ -345,6 +346,18 @@ function QuestionDetail({
 
             {isRevealed ? (
                 <>
+                    {answerReview ? (
+                        <details className="candidate-coach-plan-answer-review">
+                            <summary>
+                                <span>Review your answer</span>
+                                <ChevronDown size={18} aria-hidden="true" />
+                            </summary>
+                            <div className="candidate-coach-plan-answer-review__content">
+                                <CandidateAnswerReview item={answerReview} isCurrent />
+                            </div>
+                        </details>
+                    ) : null}
+
                     {category ? (
                         <section className="candidate-coach-plan-guidance surface-plan" aria-label="Answer guidance">
                             <WorkflowTimeline
@@ -371,13 +384,6 @@ function QuestionDetail({
                                 </aside>
                             ) : null}
                         </section>
-                    ) : null}
-
-                    {answerReview ? (
-                        <details className="candidate-coach-plan-answer-review">
-                            <summary>Review your answer</summary>
-                            <CandidateAnswerReview item={answerReview} isCurrent />
-                        </details>
                     ) : null}
 
                     {question.questionText && (!initialPlanIncomplete || !initialPlanQuestionAnswered) ? (

@@ -16662,8 +16662,11 @@ button.candidate-dashboard-action:disabled {
 
 .candidate-dashboard-plan-dial::after {
     z-index: 1;
+    top: 50%;
+    left: 50%;
     width: 8.75rem;
     height: 8.75rem;
+    transform: translate(-50%, -50%);
     background:
         radial-gradient(circle at 38% 26%, rgb(var(--glass-tint) / 0.82), transparent 38%),
         var(--dashboard-glass-quiet-background);
@@ -17509,7 +17512,7 @@ button.candidate-dashboard-action:disabled {
 
 .candidate-answer-review__shape {
     margin-top: var(--space-2);
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-4) var(--space-6);
     border-radius: var(--radius-control);
     background: var(--coach-update-detail-shape-background);
     box-shadow:
@@ -17523,16 +17526,25 @@ button.candidate-dashboard-action:disabled {
     margin: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-1) var(--space-2);
+    align-items: baseline;
+    gap: var(--space-2) var(--space-3);
     padding: 0;
     color: var(--coach-update-detail-shape-foreground);
-    font-size: var(--type-body-sm-size);
-    line-height: var(--type-body-sm-line);
+    font-size: var(--type-body-md-size);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--type-body-md-line);
     list-style: none;
 }
 
+.candidate-answer-review__shape li {
+    display: inline-flex;
+    align-items: baseline;
+    text-align: left;
+    text-wrap: wrap;
+}
+
 .candidate-answer-review__shape li + li::before {
-    margin-right: var(--space-2);
+    margin-right: var(--space-3);
     color: var(--coach-update-detail-shape-foreground);
     content: "→";
 }
@@ -17850,21 +17862,76 @@ button.candidate-dashboard-action:disabled {
 
 .candidate-coach-plan-answer-review {
     margin: 0;
-    border-block: 1px solid rgb(var(--border) / 0.64);
+    overflow: clip;
+    border-radius: var(--radius-card);
+    background: rgb(var(--surface-raised));
+    box-shadow:
+        var(--elevation-card),
+        inset 0 0 0 1px rgb(var(--border) / 0.44),
+        inset 0 1px 0 rgb(var(--surface-base) / 0.84);
+    interpolate-size: allow-keywords;
 }
 
 .candidate-coach-plan-answer-review > summary {
-    min-height: var(--touch-min);
-    align-content: center;
-    color: rgb(var(--primary));
+    display: flex;
+    min-height: calc(var(--touch-min) + var(--space-2));
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-5);
+    background: var(--coach-plan-review-action-background);
+    color: var(--coach-plan-review-action-foreground);
     font-family: var(--font-display);
-    font-size: var(--type-label-size);
+    font-size: var(--type-body-size);
     font-weight: var(--font-weight-bold);
+    line-height: var(--type-body-line);
+    list-style: none;
     cursor: pointer;
+    transition:
+        background var(--motion-control-duration) var(--motion-control-ease),
+        color var(--motion-control-duration) var(--motion-control-ease);
 }
 
-.candidate-coach-plan-answer-review[open] > summary {
-    margin-bottom: var(--space-3);
+.candidate-coach-plan-answer-review > summary::-webkit-details-marker {
+    display: none;
+}
+
+.candidate-coach-plan-answer-review > summary:hover {
+    background: var(--coach-plan-review-action-hover-background);
+}
+
+.candidate-coach-plan-answer-review > summary:focus-visible {
+    outline: 3px solid rgb(var(--ring) / 0.58);
+    outline-offset: -3px;
+}
+
+.candidate-coach-plan-answer-review > summary > svg {
+    flex: 0 0 auto;
+    transition: transform var(--duration-base) var(--ease-emphasized);
+}
+
+.candidate-coach-plan-answer-review[open] > summary > svg {
+    transform: rotate(180deg);
+}
+
+.candidate-coach-plan-answer-review::details-content {
+    block-size: 0;
+    overflow: clip;
+    opacity: 0;
+    transition:
+        block-size var(--duration-base) var(--ease-emphasized),
+        opacity var(--duration-fast) var(--ease-standard),
+        content-visibility var(--duration-base) allow-discrete;
+}
+
+.candidate-coach-plan-answer-review[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+}
+
+.candidate-coach-plan-answer-review__content {
+    padding: var(--space-5);
+    border-top: 1px solid rgb(var(--border) / 0.44);
 }
 
 .candidate-coach-plan-question-actions {
@@ -18221,10 +18288,10 @@ button.candidate-dashboard-action:disabled {
     justify-items: center;
     gap: var(--space-6);
     border-radius: 0;
-    background: rgb(var(--surface-raised));
+    background: var(--coach-plan-reference-map-background);
     color: rgb(var(--foreground));
     box-shadow:
-        inset -1px 0 0 rgb(var(--border) / 0.58),
+        inset -1px 0 0 var(--coach-plan-reference-map-contour),
         inset 0 1px 0 rgb(var(--surface-base) / 0.74);
 }
 
@@ -18432,13 +18499,13 @@ button.candidate-dashboard-action:disabled {
 
 .candidate-coach-plan-watch {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: var(--space-4);
+    grid-template-columns: minmax(5rem, auto) minmax(0, 1fr);
+    align-items: baseline;
+    gap: var(--space-5);
     border: 1px solid var(--on-color-glass-border);
     border-radius: var(--radius-control);
     background: var(--on-color-glass-background);
-    padding: var(--space-3) var(--space-4);
+    padding: var(--space-4) var(--space-5);
     color: var(--on-color-glass-foreground);
     -webkit-backdrop-filter: var(--on-color-glass-filter);
     backdrop-filter: var(--on-color-glass-filter);
@@ -18449,12 +18516,13 @@ button.candidate-dashboard-action:disabled {
     font-family: var(--font-display);
     font-size: var(--type-label-size);
     font-weight: var(--font-weight-bold);
+    line-height: var(--type-label-line);
 }
 
 .candidate-coach-plan-watch p {
     color: var(--coach-plan-surface-muted);
-    font-size: var(--type-body-sm-size);
-    line-height: var(--type-body-sm-line);
+    font-size: var(--type-body-md-size);
+    line-height: var(--type-body-md-line);
     text-wrap: wrap;
 }
 
@@ -18980,7 +19048,9 @@ button.candidate-dashboard-action:disabled {
 @media (prefers-reduced-motion: reduce) {
     .candidate-coach-update-carousel,
     .candidate-coach-update-carousel__slide,
-    .candidate-coach-update-dialog {
+    .candidate-coach-update-dialog,
+    .candidate-coach-plan-answer-review::details-content,
+    .candidate-coach-plan-answer-review > summary > svg {
         transition: none;
         animation: none;
     }

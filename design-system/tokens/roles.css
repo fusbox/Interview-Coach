@@ -186,6 +186,31 @@
     --coach-plan-surface-foreground: rgb(var(--solid-foreground));
     --coach-plan-surface-muted: rgb(var(--solid-foreground) / 0.78);
     --coach-plan-surface-contour: rgb(var(--solid-foreground) / 0.18);
+    --coach-plan-reference-map-background: linear-gradient(
+        145deg,
+        color-mix(
+            in srgb,
+            rgb(var(--surface-alt)) 88%,
+            rgb(var(--primary-soft))
+        ),
+        rgb(var(--surface-subtle))
+    );
+    --coach-plan-reference-map-contour: rgb(var(--border) / 0.46);
+    --coach-plan-review-action-background: linear-gradient(
+        145deg,
+        color-mix(
+            in srgb,
+            rgb(var(--primary-soft)) 72%,
+            rgb(var(--surface-raised))
+        ),
+        rgb(var(--surface-raised))
+    );
+    --coach-plan-review-action-hover-background: color-mix(
+        in srgb,
+        rgb(var(--primary-soft)) 84%,
+        rgb(var(--surface-raised))
+    );
+    --coach-plan-review-action-foreground: rgb(var(--primary-deep));
     --coach-plan-wheel-plate-start: color-mix(
         in srgb,
         rgb(var(--solid-foreground) / 0.78) 88%,
@@ -361,6 +386,31 @@
     --coach-plan-surface-foreground: rgb(var(--solid-foreground));
     --coach-plan-surface-muted: rgb(var(--solid-foreground) / 0.74);
     --coach-plan-surface-contour: rgb(var(--solid-foreground) / 0.13);
+    --coach-plan-reference-map-background: linear-gradient(
+        145deg,
+        color-mix(
+            in srgb,
+            rgb(var(--surface-alt)) 88%,
+            rgb(var(--primary-solid-deep))
+        ),
+        rgb(var(--surface-base))
+    );
+    --coach-plan-reference-map-contour: rgb(var(--glass-tint) / 0.1);
+    --coach-plan-review-action-background: linear-gradient(
+        145deg,
+        color-mix(
+            in srgb,
+            rgb(var(--primary-soft)) 54%,
+            rgb(var(--surface-alt))
+        ),
+        rgb(var(--surface-raised))
+    );
+    --coach-plan-review-action-hover-background: color-mix(
+        in srgb,
+        rgb(var(--primary-soft)) 66%,
+        rgb(var(--surface-alt))
+    );
+    --coach-plan-review-action-foreground: rgb(var(--primary));
     --coach-plan-wheel-well-start: color-mix(
         in srgb,
         rgb(var(--surface-alt)) 84%,

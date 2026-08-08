@@ -238,6 +238,8 @@ describe("global design-system foundation", () => {
         expect(roles).toContain("--coach-plan-wheel-well-rim:");
         expect(roles).toContain("--coach-plan-wheel-well-contour:");
         expect(roles).toContain("--coach-plan-wheel-strong-ink:");
+        expect(roles).toContain("--coach-plan-reference-map-background:");
+        expect(roles).toContain("--coach-plan-review-action-background:");
         expect(roles).not.toContain("--coach-plan-wheel-background:");
         expect(roles).not.toContain("--coach-plan-wheel-center:");
         expect(utilities).toContain(".surface-plan {");
@@ -256,6 +258,9 @@ describe("global design-system foundation", () => {
         expect(applicationStyles).toContain("var(--coach-plan-wheel-well-highlight)");
         expect(applicationStyles).toContain("var(--coach-plan-wheel-well-rim)");
         expect(applicationStyles).toContain("var(--coach-plan-wheel-well-contour)");
+        expect(applicationStyles).toContain("background: var(--coach-plan-reference-map-background);");
+        expect(applicationStyles).toContain("background: var(--coach-plan-review-action-background);");
+        expect(applicationStyles).toContain("transform: translate(-50%, -50%);");
         expect(dashboardExperience.match(/function CandidateDashboardPlanProgress/g)).toHaveLength(1);
         expect(dashboardExperience.match(/<CandidateDashboardPlanProgress/g)?.length ?? 0)
             .toBeGreaterThanOrEqual(2);
